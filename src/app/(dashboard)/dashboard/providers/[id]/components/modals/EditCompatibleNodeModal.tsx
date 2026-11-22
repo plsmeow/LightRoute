@@ -63,6 +63,7 @@ export default function EditCompatibleNodeModal({
     dailyQuotaResetHour: "",
     quotaCheckEnabled: false,
     quotaPath: DEFAULT_COMPATIBLE_QUOTA_PATH,
+    customUserAgent: "",
   });
   const [saving, setSaving] = useState(false);
   const [checkKey, setCheckKey] = useState("");
@@ -121,6 +122,9 @@ export default function EditCompatibleNodeModal({
             : "",
         quotaCheckEnabled: node.quotaCheck?.enabled === true,
         quotaPath: node.quotaCheck?.path || DEFAULT_COMPATIBLE_QUOTA_PATH,
+        customUserAgent:
+          ((node as any).customUserAgent as string) ||
+          (((node as any).customHeaders as Record<string, string>)?.["User-Agent"] ?? ""),
       });
       setSaveError(null);
       setIconUrlError(null);
@@ -171,6 +175,7 @@ export default function EditCompatibleNodeModal({
         chatPath: formData.chatPath || (isCcCompatible ? CC_COMPATIBLE_DEFAULT_CHAT_PATH : ""),
         modelsPath: isCcCompatible ? "" : formData.modelsPath,
         iconUrl: formData.iconUrl.trim(),
+        customUserAgent: formData.customUserAgent.trim(),
       };
       const tz = formData.dailyQuotaResetTimezone.trim();
       payload.dailyQuotaResetTimezone = tz || null;
@@ -329,6 +334,13 @@ export default function EditCompatibleNodeModal({
                     type: isAnthropic ? t("anthropic") : t("openai"),
                   })
           }
+        />
+        <Input
+          label="Custom User-Agent"
+          value={formData.customUserAgent}
+          onChange={(e) => setFormData({ ...formData, customUserAgent: e.target.value })}
+          placeholder="e.g. Claude-Code/0.2.29, Cursor/0.45.0"
+          hint="Подмена заголовка User-Agent для всех запросов этого провайдера"
         />
         {isCustomJson && <CustomJsonFields value={customJson} onChange={setCustomJson} t={t} />}
         <Input

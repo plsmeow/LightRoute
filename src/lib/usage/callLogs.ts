@@ -857,8 +857,19 @@ async function buildCallLogRow(entry: any, metadataOnly = false): Promise<Prepar
   };
 }
 
+const RAM_CALL_LOGS_MAX = 500;
+export const ramCallLogs: Record<string, unknown>[] = [];
 function insertCallLogRow(prepared: PreparedCallLogRow): void {
   const { db, logEntry, insertParams, hasResilienceColumn } = prepared;
+  ramCallLogs.unshift({ ...insertParams, id: logEntry.id });
+  if (ramCallLogs.length > RAM_CALL_LOGS_MAX) {
+    ramCallLogs.length = RAM_CALL_LOGS_MAX;
+  }
+  const isError = Number(insertParams.status) >= 400 || Boolean(insertParams.errorSummary);
+  if (!isError) {
+    if (!prepared.metadataOnly) resetResilienceActions();
+    return;
+  }
   // Optional column (migration 191) — only fixed identifiers are spliced in.
   const resilienceCol = hasResilienceColumn ? ", resilience_actions" : "";
   const resilienceParam = hasResilienceColumn ? ", @resilienceActions" : "";
@@ -1128,7 +1139,10 @@ export async function getCallLogs(filter: any = {}) {
   params.__limit = limit;
   params.__offset = offset;
 
-  const rows = db.prepare(sql).all(params) as CallLogSummaryRow[];
+  let rows = db.prepare(sql).all(params) as CallLogSummaryRow[];
+  if (rows.length === 0 && ramCallLogs.length > 0 && !filter.status && !filter.since) {
+    rows = ramCallLogs.slice(offset, offset + limit) as unknown as CallLogSummaryRow[];
+  }
   return rows.map(mapSummaryRow);
 }
 

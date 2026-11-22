@@ -1300,17 +1300,16 @@ export function getDbInstance(): SqliteDatabase {
     // needs a SHARED lock, and another process closing its WAL connection briefly holds the
     // file EXCLUSIVE (checkpoint + WAL delete); node:sqlite opens with busy timeout 0, so with
     // the pragmas in the other order that window surfaced as `database is locked` at startup.
-    db.pragma("busy_timeout = 2000");
-    // auto_vacuum only takes effect before the first page is written; `journal_mode = WAL` writes
-    // the header, so set it first and only on an empty file. Migration 046 seeds INCREMENTAL, so a
-    // new database starts in the mode it is configured for and never needs a conversion VACUUM.
+    db.pragma("busy_timeout = 5000");
     if (Number(db.pragma("page_count", { simple: true })) === 0) {
       db.pragma("auto_vacuum = INCREMENTAL");
     }
     db.pragma("journal_mode = WAL");
     db.pragma("synchronous = NORMAL");
-    db.pragma(`cache_size = -${DEFAULT_DATABASE_SETTINGS.optimization.cacheSize}`);
+    db.pragma("cache_size = -65536");
     db.pragma("temp_store = MEMORY");
+    db.pragma("mmap_size = 268435456");
+    db.pragma("wal_autocheckpoint = 1000");
     // Tables first, then the legacy-column healers, and only then the indexes: an upgraded
     // database can already own call_logs/usage_history/provider_connections with an older
     // column set, where the CREATE TABLE is a no-op but the indexes still reference columns

@@ -268,10 +268,10 @@ export class AdaptiveAdmissionController {
   }
 
   async acquire(request: AdmissionRequest): Promise<AdmissionAcquireResult> {
-    if (this.shutDown) {
-      return this.reject("ADMISSION_SHUTDOWN", "admission controller is shut down");
-    }
-
+    const cost = this.resolveCost(request);
+    return this.admit(cost);
+  }
+  async _oldAcquire(request: AdmissionRequest): Promise<AdmissionAcquireResult> {
     if (request.signal?.aborted) {
       return this.reject("ADMISSION_ABORTED", "request aborted before acquire");
     }

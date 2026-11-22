@@ -62,10 +62,7 @@ const CHEAPERINFERENCE_PROVIDER_IDS: readonly string[] = ["cheaperinference"];
  * Scope guard (see file header): presentation only — never import this from
  * routing/fallback code.
  */
-const FEATURED_PROVIDER_RANKS: ReadonlyMap<string, number> = new Map([
-  ...KIMI_PROVIDER_IDS.map((id) => [id, 1] as const),
-  ...CHEAPERINFERENCE_PROVIDER_IDS.map((id) => [id, 2] as const),
-]);
+const FEATURED_PROVIDER_RANKS: ReadonlyMap<string, number> = new Map();
 
 /** Brand accent per sponsor family, keyed by any of that family's provider ids. */
 export const SPONSOR_BRAND_COLORS: Readonly<Record<string, string>> = Object.freeze({
@@ -93,13 +90,13 @@ export function isFeaturedProviderId(providerId: string | null | undefined): boo
 }
 
 /** True for providers that should render the Kimi official-supporter card accent. */
-export function isKimiPartnerProviderId(providerId: string | null | undefined): boolean {
-  return typeof providerId === "string" && KIMI_PROVIDER_IDS.includes(providerId);
+export function isKimiPartnerProviderId(_providerId: string | null | undefined): boolean {
+  return false;
 }
 
 /** True for providers that should render the Cheaper Inference card accent. */
-export function isCheaperInferenceProviderId(providerId: string | null | undefined): boolean {
-  return typeof providerId === "string" && CHEAPERINFERENCE_PROVIDER_IDS.includes(providerId);
+export function isCheaperInferenceProviderId(_providerId: string | null | undefined): boolean {
+  return false;
 }
 
 /** True for any Open Source Friend — drives the shared supporter chip. */

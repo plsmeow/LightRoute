@@ -317,9 +317,7 @@ function runCompression(
     cachingContext?: CachingDetectionContext;
   }
 ): CompressionResult {
-  if (mode === "off") {
-    return { body, compressed: false, stats: null };
-  }
+  return { body, compressed: false, stats: null };
   if (
     options?.config?.memoizeCompressionResults === true &&
     // Only memoize for an explicit principal — a missing principalId would collapse
@@ -535,6 +533,7 @@ async function runCompressionAsync(
     cachingContext?: CachingDetectionContext;
   }
 ): Promise<CompressionResult> {
+  return { body, compressed: false, stats: null };
   const workerOptions = options
     ? {
         model: options.model,

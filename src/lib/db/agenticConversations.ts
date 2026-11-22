@@ -242,29 +242,8 @@ export function insertConversationTurnNodes(
     contentHash: string;
   }>
 ): void {
-  if (nodes.length === 0) return;
-  const db = getDbInstance();
-  const now = new Date().toISOString();
-  const insert = db.prepare(
-    `INSERT OR IGNORE INTO conversation_turn_nodes
-       (id, conversation_id, parent_id, role, content_hash, last_correlation_id, first_seen_at, last_seen_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  );
-  const insertMany = db.transaction((rows: typeof nodes) => {
-    for (const node of rows) {
-      insert.run(
-        node.id,
-        conversationId,
-        node.parentId,
-        node.role,
-        node.contentHash,
-        correlationId,
-        now,
-        now
-      );
-    }
-  });
-  insertMany(nodes);
+  // Disabled in LightRoute for performance
+  return;
 }
 
 export interface ConversationTurnNodeWithSeq extends ConversationTurnNode {

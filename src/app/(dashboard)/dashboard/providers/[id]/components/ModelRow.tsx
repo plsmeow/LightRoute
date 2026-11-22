@@ -22,7 +22,6 @@ import { providerText } from "../providerPageHelpers";
 import { Input as KitInput } from "@omniroute/ui-kit/input";
 import { Button, Checkbox, FilterPills } from "@/shared/components";
 import ModelComboBadge from "./ModelComboBadge";
-import ModelCompatPopover from "./ModelCompatPopover";
 import {
   ContextWindowOverrideEditButton,
   ContextWindowOverrideField,
@@ -508,19 +507,6 @@ export default function ModelRow({
               }
             ></Button>
           )}
-          <ModelCompatPopover
-            t={t}
-            providerId={provider}
-            modelId={model.id}
-            effectiveModelNormalize={(p) => effectiveModelNormalize(model.id, p)}
-            effectiveModelPreserveDeveloper={(p) => effectiveModelPreserveDeveloper(model.id, p)}
-            getUpstreamHeadersRecord={getUpstreamHeadersRecord}
-            onCompatPatch={(protocol, payload) =>
-              saveModelCompatFlags(model.id, { compatByProtocol: { [protocol]: payload } })
-            }
-            showDeveloperToggle={showDeveloperToggle}
-            disabled={compatDisabled}
-          />
         </div>
       </div>
       {/* Combo badges get their own line: several of them never fit beside the actions (#19543). */}

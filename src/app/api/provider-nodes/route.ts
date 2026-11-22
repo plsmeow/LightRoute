@@ -147,6 +147,7 @@ export async function POST(request) {
       chatPath,
       modelsPath,
       customHeaders,
+      customUserAgent,
       customJson,
       iconUrl,
       dailyQuotaResetTimezone,
@@ -174,6 +175,7 @@ export async function POST(request) {
         modelsPath: modelsPath || null,
         iconUrl: iconUrl?.trim() || null,
         customHeaders: customHeaders || null,
+        customUserAgent: customUserAgent || null,
         dailyQuotaResetTimezone: dailyQuotaResetTimezone?.trim() || null,
         dailyQuotaResetHour:
           dailyQuotaResetHour === 0 || dailyQuotaResetHour != null ? dailyQuotaResetHour : null,
@@ -208,6 +210,7 @@ export async function POST(request) {
         modelsPath: modelsPath || null,
         iconUrl: iconUrl?.trim() || null,
         customHeaders: customHeaders || null,
+        customUserAgent: customUserAgent || null,
         customJsonConfig: customJsonNode.config,
         dailyQuotaResetTimezone: dailyQuotaResetTimezone?.trim() || null,
         dailyQuotaResetHour:
@@ -243,6 +246,7 @@ export async function POST(request) {
         modelsPath: compatMode === "cc" ? null : modelsPath || null,
         iconUrl: iconUrl?.trim() || null,
         customHeaders: customHeaders || null,
+        customUserAgent: customUserAgent || null,
         dailyQuotaResetTimezone: dailyQuotaResetTimezone?.trim() || null,
         dailyQuotaResetHour:
           dailyQuotaResetHour === 0 || dailyQuotaResetHour != null ? dailyQuotaResetHour : null,

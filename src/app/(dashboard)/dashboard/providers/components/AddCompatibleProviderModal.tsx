@@ -46,6 +46,7 @@ interface CompatibleFormState {
   consoleApiKey: string;
   newApiUserId: string;
   quotaPerUnit: string;
+  customUserAgent: string;
 }
 
 const CC_DEFAULT_CHAT_PATH = "/v1/messages?beta=true";
@@ -105,6 +106,7 @@ function createInitialForm(mode: CompatibleMode): CompatibleFormState {
     consoleApiKey: "",
     newApiUserId: "",
     quotaPerUnit: "",
+    customUserAgent: "",
   };
 }
 
@@ -266,6 +268,10 @@ export default function AddCompatibleProviderModal({
       // src/lib/db/providers/nodes.ts + open-sse/executors/default.ts
       // `applyCustomHeaders`) — no separate profile field, no new pipeline.
       const identityHeaders = getClientIdentityProfileHeaders(formData.clientIdentityProfile);
+      if (formData.customUserAgent?.trim()) {
+        identityHeaders["User-Agent"] = formData.customUserAgent.trim();
+        body.customUserAgent = formData.customUserAgent.trim();
+      }
       if (Object.keys(identityHeaders).length > 0) body.customHeaders = identityHeaders;
 
       // Aggregator gateway fields (#9415)
@@ -411,6 +417,13 @@ export default function AddCompatibleProviderModal({
           onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
           placeholder={isCustomJson ? "https://api.example.com/v1/answer" : baseUrlPlaceholder}
           hint={isCustomJson ? t("customJsonEndpointHint") : baseUrlHint}
+        />
+        <Input
+          label="Custom User-Agent"
+          value={formData.customUserAgent}
+          onChange={(e) => setFormData({ ...formData, customUserAgent: e.target.value })}
+          placeholder="e.g. Claude-Code/0.2.29, Cursor/0.45.0"
+          hint="Подмена заголовка User-Agent для всех запросов этого провайдера"
         />
         {isCustomJson && <CustomJsonFields value={customJson} onChange={setCustomJson} t={t} />}
         <Input

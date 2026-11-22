@@ -9,20 +9,10 @@
  * the previous inline blocks.
  */
 
-export async function emitRequestGamificationEvent(args: {
+export async function emitRequestGamificationEvent(_args: {
   apiKeyId: string | null | undefined;
   model: string | null | undefined;
   provider: string | null | undefined;
 }): Promise<void> {
-  if (!args.apiKeyId) return;
-  try {
-    const { emitGamificationEvent } = await import("@/lib/gamification/events");
-    emitGamificationEvent({
-      apiKeyId: args.apiKeyId,
-      action: "request",
-      metadata: { model: args.model, provider: args.provider },
-    });
-  } catch (_) {
-    /* gamification optional */
-  }
+  // Disabled in LightRoute for performance
 }

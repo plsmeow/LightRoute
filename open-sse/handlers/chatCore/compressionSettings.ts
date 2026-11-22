@@ -25,24 +25,10 @@ export function createDisabledCompressionConfig(): CompressionConfig {
   };
 }
 
-export async function resolveCompressionSettings(log?: LoggerLike): Promise<{
+export async function resolveCompressionSettings(_log?: LoggerLike): Promise<{
   settings: CompressionConfig | null;
   enabled: boolean;
   contextEditingEnabled: boolean;
 }> {
-  try {
-    const { getCompressionSettings } = await import("@/lib/db/compression");
-    const settings = await getCompressionSettings();
-    return {
-      settings,
-      enabled: settings.enabled,
-      contextEditingEnabled: settings.contextEditing?.enabled === true,
-    };
-  } catch (err) {
-    log?.warn?.(
-      "COMPRESSION",
-      "Compression settings lookup skipped: " + (err instanceof Error ? err.message : String(err))
-    );
-    return { settings: null, enabled: false, contextEditingEnabled: false };
-  }
+  return { settings: null, enabled: false, contextEditingEnabled: false };
 }

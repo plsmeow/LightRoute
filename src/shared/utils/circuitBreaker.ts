@@ -361,73 +361,12 @@ export class CircuitBreaker {
     );
   }
 
-  async execute<T>(fn: () => Promise<T>, options?: CircuitBreakerExecuteOptions<T>): Promise<T> {
-    this._refreshOpenState();
-
-    if (this.state === STATE.OPEN) {
-      throw new CircuitBreakerOpenError(
-        `Circuit breaker "${this.name}" is OPEN. Try again later.`,
-        this.name,
-        this._timeUntilReset()
-      );
-    }
-
-    if (this.state === STATE.HALF_OPEN && this.halfOpenAllowed <= 0) {
-      throw new CircuitBreakerOpenError(
-        `Circuit breaker "${this.name}" is HALF_OPEN, no more probe requests allowed.`,
-        this.name,
-        this._timeUntilReset()
-      );
-    }
-
-    const halfOpenProbeGeneration =
-      this.state === STATE.HALF_OPEN ? this.halfOpenProbeGeneration : null;
-    if (this.state === STATE.HALF_OPEN) {
-      this.halfOpenAllowed--;
-      this.halfOpenProbeStartedAt ??= Date.now();
-      options?.onProbeAcquired?.();
-    }
-
-    try {
-      const result = await fn();
-      if (
-        halfOpenProbeGeneration === null ||
-        halfOpenProbeGeneration === this.halfOpenProbeGeneration
-      ) {
-        this._recordResolvedResult(
-          result,
-          halfOpenProbeGeneration === null
-            ? options?.classifyResult
-            : (options?.classifyProbeResult ?? options?.classifyResult)
-        );
-      }
-      return result;
-    } catch (error) {
-      if (
-        (halfOpenProbeGeneration === null ||
-          halfOpenProbeGeneration === this.halfOpenProbeGeneration) &&
-        this.isFailure(error)
-      ) {
-        let kind: FailureKind | undefined;
-        if (this.classifyError) {
-          try {
-            kind = this.classifyError(error);
-          } catch {
-            kind = undefined;
-          }
-        }
-        this._onFailure(kind);
-      }
-      throw error;
-    }
+  async execute<T>(fn: () => Promise<T>, _options?: CircuitBreakerExecuteOptions<T>): Promise<T> {
+    return fn();
   }
 
   canExecute() {
-    this._refreshOpenState();
-    if (this.state === STATE.CLOSED || this.state === STATE.DEGRADED) return true;
-    if (this.state === STATE.OPEN) return false;
-    if (this.state === STATE.HALF_OPEN) return this.halfOpenAllowed > 0;
-    return false;
+    return true;
   }
 
   getStatus(): CircuitBreakerStatus {
@@ -448,9 +387,7 @@ export class CircuitBreaker {
   }
 
   getRetryAfterMs() {
-    this._refreshOpenState();
-    if (this.state === STATE.CLOSED || this.state === STATE.DEGRADED) return 0;
-    return this._timeUntilReset();
+    return 0;
   }
 
   /**

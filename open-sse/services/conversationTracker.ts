@@ -619,75 +619,7 @@ function reconnectToCandidates(
 }
 
 export async function resolveConversationId(
-  input: ResolveConversationIdInput
+  _input: ResolveConversationIdInput
 ): Promise<ResolveConversationIdResult> {
-  if (process.env.OMNIROUTE_DISABLE_CONVERSATION_TRACKING === "1") {
-    return { conversationId: null, isNewConversation: false };
-  }
-
-  // Client override wins outright — deterministic, zero heuristic risk.
-  // Same header feature #8249 already reads (chatCore.ts); we don't invent a
-  // new prefix so the existing header's contract/format stays unchanged.
-  if (input.clientSessionIdHeader && input.clientSessionIdHeader.trim()) {
-    const id = input.clientSessionIdHeader.trim().slice(0, MAX_STORED_ID_LENGTH);
-    touchOrCreateExternalConversation(id, { apiKeyId: input.apiKeyId });
-    return { conversationId: id, isNewConversation: false };
-  }
-
-  const turns = extractCanonicalTurns(input.body);
-  const toolNames = extractToolNames(input.body);
-  const legacyFingerprintHash = computeFingerprintHash({
-    apiKeyId: input.apiKeyId,
-    model: input.model,
-    toolNames,
-  });
-  const clientSessionId = input.clientSessionId?.trim().slice(0, MAX_STORED_ID_LENGTH) || null;
-  const fingerprintHash = clientSessionId
-    ? computeFingerprintHash({
-        apiKeyId: input.apiKeyId,
-        model: null,
-        toolNames: [],
-        clientSessionId,
-      })
-    : legacyFingerprintHash;
-
-  // The turn CHAIN excludes the system message entirely, same reasoning as
-  // extractFirstNonSystemText above: real coding-agent CLIs regenerate the
-  // system prompt (timestamp/cwd/git status...) on every single request, so
-  // treating it as an ordinary chained turn would make turn-0 (or wherever
-  // it sits) fail to match on every request — reintroducing the exact
-  // always-new-conversation bug this chain design exists to fix.
-  const chainTurns = turns.filter((t) => t.role !== "system");
-  // #7847-class stall fix: hash each turn's content exactly once per request
-  // and bound the reconnect walk across ALL candidates with one shared budget
-  // — previously every (start × anchor × walk-step) re-hashed the turn's full
-  // text twice, which on long duplicate-heavy coding-agent histories blocked
-  // the pre-routing request path for 10-130 s.
-  const turnHashes = chainTurns.map(hashTurnContent);
-  const walkBudget: ReconnectWalkBudget = { stepsLeft: DEFAULT_RECONNECT_MAX_STEPS, stepsUsed: 0 };
-
-  const context: ReconnectContext = {
-    chainTurns,
-    turnHashes,
-    walkBudget,
-    correlationId: input.correlationId,
-  };
-  // The apiKeyId + model + toolNames bucket keeps conversations recorded before session
-  // bucketing, or before this client started sending a session id, reachable.
-  const probes = probeTurnHashes(turnHashes);
-  const reconnected =
-    reconnectToCandidates(findCandidates(fingerprintHash, probes), context) ??
-    (fingerprintHash !== legacyFingerprintHash
-      ? reconnectToCandidates(findCandidates(legacyFingerprintHash, probes), context)
-      : null);
-  if (reconnected) return reconnected;
-
-  const id = `conv_${randomUUID()}`;
-  createAgenticConversation({ id, apiKeyId: input.apiKeyId, fingerprintHash });
-  insertConversationTurnNodes(
-    id,
-    input.correlationId,
-    buildNewNodes(chainTurns, 0, id, id, turnHashes)
-  );
-  return { conversationId: id, isNewConversation: true };
+  return { conversationId: null, isNewConversation: false };
 }

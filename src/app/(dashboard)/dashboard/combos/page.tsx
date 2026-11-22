@@ -99,7 +99,6 @@ import ComboHeaderActions from "./ComboHeaderActions";
 import { ComboTestSummaryNote, getComboStepKindLabel, getI18nOrFallback } from "./comboPageHelpers";
 import ComboReferencePicker from "./ComboReferencePicker";
 import ComboStepTestButton from "./ComboStepTestButton";
-import KimiComboPresetCard from "./KimiComboPresetCard";
 import { KIMI_CODING_PRESET, hasKimiCodingPreset } from "./kimiComboPreset";
 import BuilderIntelligentStep from "./BuilderIntelligentStep";
 import IntelligentComboPanel from "./IntelligentComboPanel";
@@ -1470,11 +1469,6 @@ function CombosPageContent() {
         testingName={testingCombo}
       />
 
-      <KimiComboPresetCard
-        alreadyCreated={hasKimiCodingPreset(combos)}
-        creating={creatingKimiPreset}
-        onCreate={handleCreateKimiPreset}
-      />
 
       {showUsageGuide && (
         <ComboUsageGuide

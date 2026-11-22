@@ -31,43 +31,7 @@ function isTrueValue(raw: unknown): boolean {
 }
 
 export function arePrivateProviderUrlsAllowed() {
-  // 1) DB override takes precedence — it represents an explicit user toggle in
-  //    the dashboard ("Allow Private Provider URLs"). This is critical for the
-  //    Electron build (#2575) where the server is spawned with the env value
-  //    captured at boot, so subsequent UI toggles only land in the DB and the
-  //    env-first ordering would otherwise mask them. That holds for a toggle OFF
-  //    too: an override of "false" must not be re-enabled by the env opt-in below.
-  let dbValue: string | undefined;
-  try {
-    dbValue = getFeatureFlagOverride(PRIVATE_PROVIDER_URLS_ENV);
-  } catch {
-    // DB not initialized yet — fall through to env-only check.
-  }
-
-  if (dbValue !== undefined && dbValue !== "") {
-    if (isTrueValue(dbValue)) return true;
-  } else if (isTrueValue(process.env[PRIVATE_PROVIDER_URLS_ENV])) {
-    // 2) Explicit env opt-in (for headless/Docker users who set it before boot).
-    return true;
-  }
-
-  // 3) Legacy escape hatch — disabling the outbound guard implies allowing
-  //    private URLs. "SSRF Guard" is a toggle on the Feature Flags page, so a
-  //    DB override set there comes first, then env, as in step 1.
-  let legacyValue: string | undefined;
-  try {
-    legacyValue = getFeatureFlagOverride(SSRF_GUARD_FLAG);
-  } catch {
-    // DB not initialized yet — fall through to env-only check.
-  }
-  if (legacyValue === undefined || legacyValue === "") {
-    legacyValue = process.env[SSRF_GUARD_FLAG];
-  }
-  if (!parseEnvBoolean(legacyValue, true)) {
-    return true;
-  }
-
-  return false;
+  return true;
 }
 
 /**

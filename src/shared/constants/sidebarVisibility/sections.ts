@@ -276,13 +276,6 @@ const TOOLS_GROUP: SidebarItemGroup = {
       icon: "link",
     },
     {
-      id: "traffic-inspector",
-      href: "/dashboard/tools/traffic-inspector",
-      i18nKey: "trafficInspector",
-      subtitleKey: "trafficInspectorSubtitle",
-      icon: "network_check",
-    },
-    {
       id: "discovery",
       href: "/dashboard/discovery",
       i18nKey: "discovery",
@@ -362,25 +355,11 @@ const ANALYTICS_ITEMS: readonly SidebarItemDefinition[] = [
     icon: "cached",
   },
   {
-    id: "analytics-compression",
-    href: "/dashboard/analytics/compression",
-    i18nKey: "analyticsCompression",
-    subtitleKey: "analyticsCompressionSubtitle",
-    icon: "compress",
-  },
-  {
     id: "analytics-search",
     href: "/dashboard/analytics/search",
     i18nKey: "analyticsSearch",
     subtitleKey: "analyticsSearchSubtitle",
     icon: "manage_search",
-  },
-  {
-    id: "analytics-evals",
-    href: "/dashboard/analytics/evals",
-    i18nKey: "analyticsEvals",
-    subtitleKey: "analyticsEvalsSubtitle",
-    icon: "labs",
   },
   {
     id: "provider-stats",
@@ -498,40 +477,11 @@ const COSTS_ITEMS: readonly SidebarItemDefinition[] = [
     icon: "price_change",
   },
   {
-    id: "costs-teams",
-    href: "/dashboard/costs/teams",
-    i18nKey: "costsTeams",
-    subtitleKey: "costsTeamsSubtitle",
-    icon: "groups",
-  },
-  {
     id: "costs-budget",
     href: "/dashboard/costs/budget",
     i18nKey: "costsBudget",
     subtitleKey: "costsBudgetSubtitle",
     icon: "savings",
-  },
-  {
-    id: "costs-free-tiers",
-    href: "/dashboard/free-tiers",
-    i18nKey: "costsFreeTiers",
-    subtitleKey: "costsFreeTiersSubtitle",
-    icon: "request_quote",
-  },
-  {
-    id: "free-provider-rankings",
-    href: "/dashboard/free-provider-rankings",
-    i18nKey: "freeProviderRankings",
-    subtitleKey: "freeProviderRankingsSubtitle",
-    icon: "leaderboard",
-  },
-  {
-    id: "radar",
-    href: "/dashboard/radar",
-    i18nKey: "radar",
-    subtitleKey: "radarSubtitle",
-    icon: "radar",
-    featureFlagKey: "RADAR_ENABLED",
   },
 ];
 
@@ -547,20 +497,6 @@ const AUDIT_GROUP: SidebarItemGroup = {
       i18nKey: "auditLog",
       subtitleKey: "auditLogSubtitle",
       icon: "policy",
-    },
-    {
-      id: "audit-mcp",
-      href: "/dashboard/audit/mcp",
-      i18nKey: "auditMcp",
-      subtitleKey: "auditMcpSubtitle",
-      icon: "security",
-    },
-    {
-      id: "audit-a2a",
-      href: "/dashboard/audit/a2a",
-      i18nKey: "auditA2a",
-      subtitleKey: "auditA2aSubtitle",
-      icon: "device_hub",
     },
   ],
 };
@@ -845,7 +781,6 @@ export const SIDEBAR_SECTIONS: readonly SidebarSectionDefinition[] = [
     titleFallback: "OmniProxy",
     children: [
       ...OMNI_PROXY_ITEMS,
-      COMPRESSION_CONTEXT_GROUP,
       TOOLS_GROUP,
       INTEGRATIONS_GROUP,
       PROXY_ITEM,
@@ -876,16 +811,10 @@ export const SIDEBAR_SECTIONS: readonly SidebarSectionDefinition[] = [
     children: DEVTOOLS_ITEMS,
   },
   {
-    id: "agentic-features",
-    titleKey: "agenticFeaturesSection",
-    titleFallback: "Agentic Features",
-    children: AGENTIC_FEATURES_ITEMS,
-  },
-  {
     id: "other-features",
     titleKey: "otherFeaturesSection",
     titleFallback: "Other Features",
-    children: [GAMIFICATION_GROUP, ...OTHER_FEATURES_ITEMS, BATCH_GROUP],
+    children: [...OTHER_FEATURES_ITEMS, BATCH_GROUP],
   },
   {
     id: "configuration",

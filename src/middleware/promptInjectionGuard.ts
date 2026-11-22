@@ -18,33 +18,9 @@ import { CORS_HEADERS } from "@/shared/utils/cors";
  * @param {PromptInjectionGuardrailOptions} [options={}]
  * @returns {(req: Request) => { blocked: boolean, result: Object }|null}
  */
-export function createInjectionGuard(options: PromptInjectionGuardrailOptions = {}) {
-  /**
-   * Check a request body for prompt injection.
-   *
-   * @param {Object} body - The parsed request body
-   * @returns {{ blocked: boolean, result: Object }}
-   */
-  return function guardRequest(body: any) {
-    if (!body || typeof body !== "object") {
-      return { blocked: false, result: { flagged: false, detections: [], piiDetections: [] } };
-    }
-
-    const decision = evaluatePromptInjection(body, options, {
-      // Mandatory injection block mode intentionally ignores all caller-
-      // controlled disabledGuardrails. Registry-managed guardrails use those
-      // channels independently; never pass them into this middleware.
-      // Omitted logger → console fallback: for middleware-only routes (embeddings,
-      // images, audio, moderations, …) this guard is the ONLY injection evaluation,
-      // so a silent guard would leave blocked requests with zero server-side trace.
-      // Chat-family routes are re-evaluated by the guardrail registry with a pino
-      // logger and opt out of the duplicate line with `logger: null` (#11936).
-      log: options.logger === undefined ? console : options.logger,
-    });
-    return {
-      blocked: decision.blocked,
-      result: decision.result,
-    };
+export function createInjectionGuard(_options: PromptInjectionGuardrailOptions = {}) {
+  return function guardRequest(_body: unknown) {
+    return { blocked: false, result: { flagged: false, detections: [], piiDetections: [] } };
   };
 }
 

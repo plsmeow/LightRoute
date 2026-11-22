@@ -147,6 +147,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       chatPath,
       modelsPath,
       customHeaders,
+      customUserAgent,
       customJson,
       iconUrl,
       dailyQuotaResetTimezone,
@@ -194,6 +195,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       // previously stored custom icon.
       iconUrl: iconUrl?.trim() || null,
       customHeaders: customHeaders || null,
+      customUserAgent: customUserAgent || null,
       dailyQuotaResetTimezone: dailyQuotaResetTimezone?.trim() || null,
       dailyQuotaResetHour:
         dailyQuotaResetHour === 0 || dailyQuotaResetHour != null ? dailyQuotaResetHour : null,

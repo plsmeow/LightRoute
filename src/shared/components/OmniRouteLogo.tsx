@@ -31,28 +31,23 @@ interface OmniRouteLockupProps {
   className?: string;
 }
 
-/** Full "Keak OmniRoute" lockup; white-label operators get their own name/logo instead. */
 export function OmniRouteLockup({ name, logoSrc, className }: OmniRouteLockupProps) {
-  if (name || logoSrc) {
-    return (
-      <span
-        role="img"
-        aria-label={name || "OmniRoute"}
-        className={cn("inline-flex items-center gap-2", className)}
-      >
-        {logoSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element -- operator-supplied white-label logo (data: or remote URL), not a static/known asset
-          <img src={logoSrc} alt="" className="size-6 object-contain" />
-        ) : (
-          <OmniRouteLogo size={24} />
-        )}
-        {name && (
-          <span aria-hidden="true" className="truncate font-semibold">
-            {name}
-          </span>
-        )}
+  const brandName = name || "LightRoute";
+  return (
+    <span
+      role="img"
+      aria-label={brandName}
+      className={cn("inline-flex items-center gap-2", className)}
+    >
+      {logoSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element -- operator-supplied white-label logo (data: or remote URL), not a static/known asset
+        <img src={logoSrc} alt="" className="size-6 object-contain" />
+      ) : (
+        <OmniRouteLogo size={24} />
+      )}
+      <span aria-hidden="true" className="truncate font-semibold text-lg text-text-main">
+        {brandName}
       </span>
-    );
-  }
-  return <ProductLockup product="omniroute" className={className} />;
+    </span>
+  );
 }

@@ -15,7 +15,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { Input as KitInput } from "@omniroute/ui-kit/input";
 import { Badge, Button } from "@/shared/components";
 import { providerText } from "../providerPageHelpers";
-import ModelCompatPopover from "./ModelCompatPopover";
 import ModelVisionOverrideEditor from "./ModelVisionOverrideEditor";
 import ModelEndpointTagsEditor, { type ModelEndpointEditorInfo } from "./ModelEndpointTagsEditor";
 import ModelComboBadge from "./ModelComboBadge";
@@ -359,20 +358,6 @@ export default function PassthroughModelRow({
               }
             />
           )}
-          <ModelCompatPopover
-            t={t}
-            providerId={provider}
-            modelId={modelId}
-            effectiveModelNormalize={(p) => effectiveModelNormalize(modelId, p)}
-            effectiveModelPreserveDeveloper={(p) => effectiveModelPreserveDeveloper(modelId, p)}
-            getUpstreamHeadersRecord={getUpstreamHeadersRecord}
-            onCompatPatch={(protocol, payload) =>
-              saveModelCompatFlags(modelId, { compatByProtocol: { [protocol]: payload } })
-            }
-            showDeveloperToggle={showDeveloperToggle}
-            compact
-            disabled={compatDisabled}
-          />
           {onDeleteAlias && (
             <Button
               variant="destructive-ghost"

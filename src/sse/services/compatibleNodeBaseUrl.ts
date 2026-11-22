@@ -63,36 +63,38 @@ async function hydrateCompatibleNodeBaseUrl(
   provider: string,
   providerSpecificData: JsonRecord
 ): Promise<JsonRecord> {
-  if (typeof providerSpecificData.baseUrl === "string" && providerSpecificData.baseUrl) {
-    return providerSpecificData;
-  }
   if (!isCompatibleProviderConnectionId(provider)) return providerSpecificData;
 
   try {
     const nodes = (await getCachedProviderNodes()) as JsonRecord[];
     const node = selectProviderNodeForConnection(provider, nodes);
-    if (!node || typeof node.baseUrl !== "string" || !node.baseUrl) return providerSpecificData;
+    if (!node) return providerSpecificData;
 
-    return {
-      ...providerSpecificData,
-      prefix: providerSpecificData.prefix ?? node.prefix,
-      apiType: providerSpecificData.apiType ?? node.apiType,
-      baseUrl: node.baseUrl,
-      nodeName: providerSpecificData.nodeName ?? node.name,
-      ...(node.chatPath && !providerSpecificData.chatPath ? { chatPath: node.chatPath } : {}),
-      ...(node.modelsPath && !providerSpecificData.modelsPath
-        ? { modelsPath: node.modelsPath }
-        : {}),
-      ...(node.customHeaders && !providerSpecificData.customHeaders
-        ? { customHeaders: node.customHeaders }
-        : {}),
-      ...(node.customJsonConfig && !providerSpecificData.customJson
-        ? { customJson: node.customJsonConfig }
-        : {}),
-    };
+    const nodeCustomHeaders = (node.customHeaders as Record<string, string> | null) ?? null;
+    const nodeUserAgent =
+      (typeof node.customUserAgent === "string" && node.customUserAgent.trim()) ||
+      nodeCustomHeaders?.["User-Agent"] ||
+      nodeCustomHeaders?.["user-agent"] ||
+      "";
+
+    const result = { ...providerSpecificData };
+    if (!result.baseUrl && typeof node.baseUrl === "string") {
+      result.baseUrl = node.baseUrl;
+      result.prefix = result.prefix ?? node.prefix;
+      result.apiType = result.apiType ?? node.apiType;
+      result.nodeName = result.nodeName ?? node.name;
+      if (node.chatPath && !result.chatPath) result.chatPath = node.chatPath;
+      if (node.modelsPath && !result.modelsPath) result.modelsPath = node.modelsPath;
+      if (node.customJsonConfig && !result.customJson) result.customJson = node.customJsonConfig;
+    }
+    if (nodeUserAgent && !result.customUserAgent) {
+      result.customUserAgent = nodeUserAgent;
+    }
+    if (node.customHeaders && !result.customHeaders) {
+      result.customHeaders = node.customHeaders;
+    }
+    return result;
   } catch {
-    // Best-effort self-heal only — a transient DB/cache read failure must
-    // not throw here; the executor's own fail-loud fallback is the backstop.
     return providerSpecificData;
   }
 }

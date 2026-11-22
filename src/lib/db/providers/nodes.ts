@@ -25,7 +25,9 @@ function parseStoredJson(storedJson: string | null): unknown {
 
 function withParsedCustomHeaders(node: JsonRecord, storedJson: string | null): JsonRecord {
   const result: JsonRecord = { ...node };
-  result.customHeaders = parseStoredJson(storedJson);
+  const headers = parseStoredJson(storedJson) as Record<string, string> | null;
+  result.customHeaders = headers;
+  result.customUserAgent = headers?.["User-Agent"] || headers?.["user-agent"] || "";
   delete result.customHeadersJson;
   // Custom JSON API node config (#4929 port): exposed parsed, like rowToCamel does.
   result.customJsonConfig = parseStoredJson(
@@ -136,8 +138,16 @@ export async function createProviderNode(data: JsonRecord) {
   const db = getDbInstance() as unknown as DbLike;
   const now = new Date().toISOString();
 
-  const customHeadersJson = data.customHeaders ? JSON.stringify(data.customHeaders) : null;
-
+  const headers: Record<string, string> = data.customHeaders ? { ...(data.customHeaders as Record<string, string>) } : {};
+  if (typeof data.customUserAgent === "string") {
+    if (data.customUserAgent.trim()) {
+      headers["User-Agent"] = data.customUserAgent.trim();
+    } else {
+      delete headers["User-Agent"];
+      delete headers["user-agent"];
+    }
+  }
+  const customHeadersJson = Object.keys(headers).length > 0 ? JSON.stringify(headers) : null;
   const node = {
     id: data.id || uuidv4(),
     type: data.type,
@@ -188,14 +198,24 @@ export async function updateProviderNode(id: string, data: JsonRecord) {
     updatedAt: new Date().toISOString(),
   };
 
+  let headersObj: Record<string, string> = {};
   if (data.customHeaders !== undefined) {
-    merged["customHeadersJson"] = data.customHeaders ? JSON.stringify(data.customHeaders) : null;
+    headersObj = (data.customHeaders as Record<string, string>) ? { ...(data.customHeaders as Record<string, string>) } : {};
   } else {
-    // Partial update that omits customHeaders must PRESERVE the stored value.
-    // rowToCamel surfaces the column under `customHeaders` (suffix stripped),
-    // never `customHeadersJson`, so read the raw stored JSON from `existing`
-    // directly instead of relying on the (absent) merged key — otherwise the
-    // UPDATE would bind null and silently wipe the saved headers.
+    const existingJson = (existing as JsonRecord).custom_headers_json;
+    headersObj = (typeof existingJson === "string" ? parseStoredJson(existingJson) : {}) as Record<string, string> || {};
+  }
+  if (typeof data.customUserAgent === "string") {
+    if (data.customUserAgent.trim()) {
+      headersObj["User-Agent"] = data.customUserAgent.trim();
+    } else {
+      delete headersObj["User-Agent"];
+      delete headersObj["user-agent"];
+    }
+    merged["customHeadersJson"] = Object.keys(headersObj).length > 0 ? JSON.stringify(headersObj) : null;
+  } else if (data.customHeaders !== undefined) {
+    merged["customHeadersJson"] = Object.keys(headersObj).length > 0 ? JSON.stringify(headersObj) : null;
+  } else {
     const existingJson = (existing as JsonRecord).custom_headers_json;
     merged["customHeadersJson"] = typeof existingJson === "string" ? existingJson : null;
   }

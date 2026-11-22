@@ -34,7 +34,6 @@ import {
   type CompatModelRow,
   type CompatByProtocolMap,
 } from "../providerPageHelpers";
-import ModelCompatPopover from "./ModelCompatPopover";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -892,33 +891,6 @@ export default function CustomModelsSection({
                     className="size-6 min-h-6 rounded text-text-muted"
                     title={t("edit")}
                     aria-label={t("edit")}
-                  />
-                  <ModelCompatPopover
-                    t={t}
-                    providerId={providerId}
-                    modelId={model.id!}
-                    effectiveModelNormalize={(p) =>
-                      effectiveNormalizeForProtocol(
-                        model.id!,
-                        p,
-                        customMap,
-                        overrideMap,
-                        providerId
-                      )
-                    }
-                    effectiveModelPreserveDeveloper={(p) =>
-                      effectivePreserveForProtocol(model.id!, p, customMap, overrideMap)
-                    }
-                    getUpstreamHeadersRecord={(p) =>
-                      effectiveUpstreamHeadersForProtocol(model.id!, p, customMap, overrideMap)
-                    }
-                    onCompatPatch={(protocol, payload) =>
-                      saveCustomCompat(model.id!, {
-                        compatByProtocol: { [protocol]: payload },
-                      })
-                    }
-                    showDeveloperToggle
-                    disabled={savingModelId === model.id}
                   />
                   <Button
                     variant="ghost"

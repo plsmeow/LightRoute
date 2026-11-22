@@ -441,6 +441,7 @@ export const createProviderNodeSchema = z
     // isValidProviderIconUrl (2000 chars for http(s), 256 KiB for data:image).
     iconUrl: providerNodeIconUrlSchema,
     customHeaders: customHeadersSchema,
+    customUserAgent: z.string().trim().max(1000).optional().or(z.literal("")),
     // Custom JSON API node config (apiType "custom-json"): request template + response path.
     customJson: customJsonConfigSchema.optional(),
     dailyQuotaResetTimezone: dailyQuotaResetTimezoneSchema,
@@ -543,6 +544,7 @@ export const updateProviderNodeSchema = z
     // clears a previously stored custom icon.
     iconUrl: providerNodeIconUrlSchema,
     customHeaders: customHeadersSchema,
+    customUserAgent: z.string().trim().max(1000).optional().or(z.literal("")),
     customJson: customJsonConfigSchema.optional(),
     dailyQuotaResetTimezone: dailyQuotaResetTimezoneSchema,
     dailyQuotaResetHour: dailyQuotaResetHourSchema,

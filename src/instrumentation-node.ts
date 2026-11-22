@@ -37,7 +37,7 @@ function toHex(bytes: Uint8Array): string {
 export function renameProcessTitle(currentTitle: string): string {
   if (!currentTitle) return currentTitle;
   if (!currentTitle.startsWith("next-server")) return currentTitle;
-  return `omniroute${currentTitle.slice("next-server".length)}`;
+  return `lightroute${currentTitle.slice("next-server".length)}`;
 }
 
 // `normalizeBootError` now lives in `@/lib/instrumentationBootError` (imported
@@ -370,153 +370,7 @@ export interface OptionalBootSubsystem {
  * injects and queries memory) and the backup schedule — stays inline in
  * `registerNodejs()` and runs in both modes.
  */
-export const OPTIONAL_BOOT_SUBSYSTEMS: ReadonlyArray<OptionalBootSubsystem> = [
-  {
-    name: "embedded-services",
-    start: () =>
-      import("@/lib/services/bootstrap")
-        .then(async (m) => {
-          await m.bootstrapEmbeddedServices();
-          console.log("[STARTUP] Embedded services bootstrap complete");
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] Embedded services bootstrap failed (non-fatal):", msg);
-        }),
-  },
-  {
-    name: "embed-ws-proxy",
-    start: () =>
-      import("@/lib/services/embedWsProxy")
-        .then((m) => m.initEmbedWsProxy())
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] Embed WS proxy failed to start (non-fatal):", msg);
-        }),
-  },
-  // Conductor bridge (PRD Conductor RF1): mirrors OmniConductor hub tasks into the
-  // A2A TaskManager via the hub SSE. Opt-in — self-gated on CONDUCTOR_HUB_URL.
-  {
-    name: "conductor-bridge",
-    start: () =>
-      import("@/lib/conductor/boot")
-        .then((m) => {
-          if (m.initConductorBridge()) console.log("[STARTUP] Conductor bridge started");
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] Conductor bridge failed to start (non-fatal):", msg);
-        }),
-  },
-  // Arena ELO sync: model intelligence from the Arena AI leaderboard, powering the
-  // Free Provider Rankings page. On by default; non-blocking, never fatal.
-  {
-    name: "arena-elo-sync",
-    start: () =>
-      import("@/lib/arenaEloSync")
-        .then(async (m) => {
-          const started = await m.initArenaEloSync();
-          if (started) console.log("[STARTUP] Arena ELO sync initialized");
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] Arena ELO sync failed to start (non-fatal):", msg);
-        }),
-  },
-  // Radar daily feed sync: only arms itself when RADAR_ENABLED AND the user
-  // opt-in are already on (flag-off boot stays timer-free — Radar inertia
-  // contract). Non-blocking, never fatal.
-  {
-    name: "radar-sync",
-    start: () =>
-      import("@/lib/radar/scheduler")
-        .then((m) => {
-          const started = m.initRadarSyncScheduler();
-          if (started) console.log("[STARTUP] Radar sync scheduler initialized");
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] Radar sync scheduler failed to start (non-fatal):", msg);
-        }),
-  },
-  // Pricing sync: opt-in external pricing data (self-gated by PRICING_SYNC_ENABLED inside
-  // initPricingSync). Non-blocking, never fatal.
-  {
-    name: "pricing-sync",
-    start: () =>
-      import("@/lib/pricingSync")
-        .then((m) => m.initPricingSync())
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] Pricing sync failed to start (non-fatal):", msg);
-        }),
-  },
-  // OpenRouter provider stats sync: provider directory + popularity enrichment
-  // for the dashboard Providers page. On by default; opt out with
-  // OPENROUTER_PROVIDER_STATS_ENABLED=false. Non-blocking, never fatal.
-  {
-    name: "openrouter-provider-stats",
-    start: () =>
-      import("@/lib/catalog/openrouterProviderStats")
-        .then((m) => {
-          const started = m.initOpenRouterProviderStatsSync();
-          if (started) console.log("[STARTUP] OpenRouter provider stats sync initialized");
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn(
-            "[STARTUP] OpenRouter provider stats sync failed to start (non-fatal):",
-            msg
-          );
-        }),
-  },
-  // models.dev capability sync: opt-in via Settings > AI (self-gated by
-  // settings.modelsDevSyncEnabled inside initModelsDevSync). Non-blocking, never fatal.
-  {
-    name: "models-dev-sync",
-    start: () =>
-      import("@/lib/modelsDevSync")
-        .then((m) => m.initModelsDevSync())
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] models.dev sync failed to start (non-fatal):", msg);
-        }),
-  },
-  // OpenCode free-tier Bun relay: self-gated on OPENCODE_FREE_TIER_RELAY_URL. Non-blocking,
-  // never fatal.
-  {
-    name: "opencode-free-relay",
-    start: () =>
-      import("@/lib/opencodeFreeRelay")
-        .then(async (m) => {
-          const result = await m.startOpencodeFreeRelay();
-          if (result.status !== "disabled")
-            console.log(`[STARTUP] OpenCode free relay: ${result.status} ${result.detail ?? ""}`);
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] OpenCode free relay failed to start (non-fatal):", msg);
-        }),
-  },
-  // Real-time dashboard WebSocket daemon (port 20132): powers Combo Studio Live,
-  // the Home live-pulse, and Live Compression. Side-effect import triggers the
-  // flag-gated auto-start (OMNIROUTE_ENABLE_LIVE_WS, default ON).
-  {
-    name: "live-dashboard-ws",
-    start: () =>
-      import("@/server/ws/liveServer")
-        .then(() => {
-          console.log("[STARTUP] Live dashboard WebSocket daemon bootstrap invoked");
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn(
-            "[STARTUP] Live dashboard WebSocket daemon failed to start (non-fatal):",
-            msg
-          );
-        }),
-  },
-];
+export const OPTIONAL_BOOT_SUBSYSTEMS: ReadonlyArray<OptionalBootSubsystem> = [];
 
 /**
  * Start the optional boot subsystems in parallel unless headless mode is on.
@@ -696,20 +550,10 @@ export async function registerNodejs(): Promise<void> {
   // Proxy health scheduler (auto-removes dead proxies on interval)
   await import("@/lib/proxyHealth/scheduler");
 
-  // Free-proxy auto-sync scheduler (re-fetches free-proxy sources on interval, #7079).
-  // Optional: skipped in headless mode (src/lib/system/headless.ts).
-  if (!skipInHeadless("free-proxy-sync")) {
-    await import("@/lib/freeProxyProviders/scheduler");
-  }
-
   initGracefulShutdown();
   initApiBridgeServer();
   startSpendBatchWriter();
-  registerDefaultGuardrails();
-  registerBuiltinSkills(skillExecutor);
   console.log("[STARTUP] Spend batch writer started");
-  console.log("[STARTUP] Guardrail registry initialized");
-  console.log("[STARTUP] Builtin skill handlers registered");
   // Request-path gate (not a background service): with "auto-apply banked resets" off it
   // defers to the per-account autoLimitReset toggle, so behavior is unchanged.
   const { registerClaudeSessionResetPolicy } = await import("@/lib/usage/claudeSessionResetPolicy");

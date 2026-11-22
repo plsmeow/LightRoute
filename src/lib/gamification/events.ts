@@ -38,76 +38,8 @@ export async function emitGamificationEvent(params: {
     | "radar_supporter";
   metadata?: Record<string, unknown>;
 }): Promise<void> {
-  const { apiKeyId, action, metadata } = params;
-
-  if (!apiKeyId) return; // Skip if no API key
-
-  try {
-    // A verified Radar supporter is a recognition event, not an XP or
-    // leaderboard action. The caller supplies only a one-way key identity.
-    if (action === "radar_supporter") {
-      await checkAndUnlockBadge(apiKeyId, "radar-supporter", false);
-      return;
-    }
-
-    // 1. Award XP
-    const xpAmount = getXpForAction(action);
-    if (xpAmount > 0) {
-      // Anti-cheat gate (#2403): the per-key 1000 XP/min rate limit and the z-score anomaly
-      // check run before anything is persisted. A rejected award is dropped and logged — the
-      // caller is fire-and-forget, so this must never throw.
-      const { validateScoreChange } = await import("./antiCheat");
-      const verdict = await validateScoreChange(apiKeyId, action, xpAmount);
-      if (!verdict.allowed) {
-        log.warn("events.award_rejected", { apiKeyId, action, xpAmount, reason: verdict.reason });
-        return;
-      }
-
-      const { awardXp } = await import("../db/gamification");
-      awardXp(
-        apiKeyId,
-        action,
-        xpAmount,
-        metadata ? JSON.stringify(metadata) : undefined,
-        scopesForAction(action)
-      );
-
-      await syncLevel(apiKeyId);
-    }
-
-    // 2. Update streak
-    if (action === "request") {
-      const { advanceStreak } = await import("./streaks");
-      const { currentStreak: streak, extended } = await advanceStreak(apiKeyId);
-
-      // Pay the documented streak_bonus (XP_REWARDS: per consecutive streak day, multiplied
-      // by streak length) on the one request per UTC day that extends the streak.
-      if (extended) {
-        await awardStreakBonus(apiKeyId, streak);
-      }
-
-      // Check streak badges
-      if (streak >= 365) {
-        await checkAndUnlockBadge(apiKeyId, "unstoppable");
-      } else if (streak >= 30) {
-        await checkAndUnlockBadge(apiKeyId, "monthly-master");
-      } else if (streak >= 7) {
-        await checkAndUnlockBadge(apiKeyId, "weekly-warrior");
-      } else if (streak >= 3) {
-        await checkAndUnlockBadge(apiKeyId, "daily-user");
-      }
-    }
-
-    // 3. Check action count badges (the leaderboard was credited with the award in step 1)
-    await checkActionCountBadges(apiKeyId, action);
-  } catch (err) {
-    // Never throw — gamification must not break the request pipeline
-    log.error("events.error", {
-      ...(action === "radar_supporter" ? {} : { apiKeyId }),
-      action,
-      error: err instanceof Error ? err.message : String(err),
-    });
-  }
+  // Gamification disabled in LightRoute
+  return;
 }
 
 /**

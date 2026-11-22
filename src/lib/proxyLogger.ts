@@ -310,7 +310,19 @@ function logProxyBatchFailure(err: unknown): void {
   );
 }
 
+const RAM_PROXY_LOGS_MAX = 500;
+export const ramProxyLogs: ProxyLogEntry[] = [];
+
 function writeProxyBatch(batch: ProxyLogEntry[], db: ReturnType<typeof getDbInstance>): void {
+  for (const item of batch) {
+    ramProxyLogs.unshift(item);
+  }
+  if (ramProxyLogs.length > RAM_PROXY_LOGS_MAX) {
+    ramProxyLogs.length = RAM_PROXY_LOGS_MAX;
+  }
+  const errors = batch.filter((item) => item.status !== "success" || Boolean(item.error));
+  if (errors.length === 0) return;
+
   const insertStmt = db.prepare(
     `INSERT INTO proxy_logs (id, timestamp, status, proxy_type, proxy_host, proxy_port, proxy_name,
       level, level_id, provider, target_url, public_ip, egress_ip, egress_ip_v4, egress_ip_v6,
@@ -357,7 +369,7 @@ function writeProxyBatch(batch: ProxyLogEntry[], db: ReturnType<typeof getDbInst
     }
   });
 
-  transaction(batch);
+  transaction(errors);
 }
 
 // A non-lock failure (one row SQLite rejects) must not drop the whole batch:
