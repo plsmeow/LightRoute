@@ -604,7 +604,7 @@ export default function ConsoleLogViewer() {
           <div className="w-3 h-3 rounded-full bg-[var(--ci-log-warn)]" />
           <div className="w-3 h-3 rounded-full bg-[var(--ci-code-inverse-string)]" />
           <span className="ml-3 text-[var(--ci-log-trace)] text-[11px]">
-            OmniRoute — {tv("applicationConsole")}
+            LightRoute — {tv("applicationConsole")}
           </span>
         </div>
 

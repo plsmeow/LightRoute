@@ -15,8 +15,10 @@ import { CARD_TOGGLE_CLASS, cardToggleProps } from "./cardToggle";
 
 const CLOUD_URL = process.env.NEXT_PUBLIC_CLOUD_URL;
 
-// (#618) Match any custom:OmniRoute-<i> entry (multi-model).
-const isOmniRouteEntry = (m) => typeof m?.id === "string" && m.id.startsWith("custom:OmniRoute");
+// (#618) Match any custom:LightRoute-<i> or legacy custom:OmniRoute-<i> entry (multi-model).
+const isOmniRouteEntry = (m) =>
+  typeof m?.id === "string" &&
+  (m.id.startsWith("custom:LightRoute") || m.id.startsWith("custom:OmniRoute"));
 
 export default function DroidToolCard({
   tool,
@@ -284,7 +286,7 @@ export default function DroidToolCard({
     const settingsContent = {
       customModels: modelsForPreview.map((m, i) => ({
         model: m,
-        id: `custom:OmniRoute-${i}`,
+        id: `custom:LightRoute-${i}`,
         index: i,
         baseUrl: getEffectiveBaseUrl(),
         apiKey: keyToDisplay,

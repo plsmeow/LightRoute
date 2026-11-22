@@ -153,16 +153,16 @@ export default function CopilotToolCard({
     }));
 
     const config = {
-      name: "OmniRoute",
+      name: "LightRoute",
       vendor: "azure",
-      apiKey: `\${input:chat.lm.secret.omniroute}`,
+      apiKey: `\${input:chat.lm.secret.lightroute}`,
       models,
     };
 
     const responsesConfig = {
-      name: "OmniRoute-responses",
+      name: "LightRoute-responses",
       vendor: "azure",
-      apiKey: `\${input:chat.lm.secret.omniroute}`,
+      apiKey: `\${input:chat.lm.secret.lightroute}`,
       models: responseModels,
     };
 

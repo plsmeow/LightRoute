@@ -1,5 +1,5 @@
 // CLI Tools configuration
-import { getClaudeCodeDefaultModels } from "@omniroute/open-sse/config/providerRegistry";
+import { getClaudeCodeDefaultModels } from "@lightroute/open-sse/config/providerRegistry";
 import type { CliCatalogEntry } from "@/shared/schemas/cliCatalog";
 import { GROK_BUILD_CLI_TOOL } from "@/shared/constants/cliToolsGrokBuild";
 
@@ -13,7 +13,7 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
     name: "Claude Code",
     image: "/providers/claude.svg",
     color: "#D97757",
-    description: "Anthropic Claude Code CLI — ANTHROPIC_BASE_URL points to OmniRoute",
+    description: "Anthropic Claude Code CLI — ANTHROPIC_BASE_URL points to LightRoute",
     docsUrl: "https://docs.anthropic.com/en/docs/claude-code/overview",
     configType: "env",
     category: "code",
@@ -76,7 +76,7 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
     name: "OpenAI Codex CLI",
     image: "/providers/codex.svg",
     color: "#10A37F",
-    description: "OpenAI Codex CLI — OpenAI-compatible base URL targets OmniRoute",
+    description: "OpenAI Codex CLI — OpenAI-compatible base URL targets LightRoute",
     docsUrl: "https://github.com/openai/codex",
     configType: "custom",
     category: "code",
@@ -314,7 +314,7 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
       },
       {
         type: "warning",
-        text: 'Thinking variant example: opencode run "implement this feature" --model omniroute/claude-sonnet-4-5-thinking --variant high',
+        text: 'Thinking variant example: opencode run "implement this feature" --model lightroute/claude-sonnet-4-5-thinking --variant high',
       },
     ],
     guideSteps: [
@@ -333,9 +333,9 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
       code: `{
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "omniroute": {
+    "lightroute": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "OmniRoute",
+      "name": "LightRoute",
       "options": {
         "baseURL": "{{baseUrl}}",
         "apiKey": "{{apiKey}}"
@@ -381,7 +381,7 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
       {
         step: 5,
         title: "Save Provider Block",
-        desc: "Use the JSON block below as the OpenAI-compatible provider definition for OmniRoute.",
+        desc: "Use the JSON block below as the OpenAI-compatible provider definition for LightRoute.",
       },
     ],
     codeBlock: {
@@ -440,7 +440,7 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
     name: "Qwen Code",
     image: "/providers/qwen.svg",
     color: "#10B981",
-    description: "Qwen Code CLI — current V4 OpenAI-compatible model provider via OmniRoute",
+    description: "Qwen Code CLI — current V4 OpenAI-compatible model provider via LightRoute",
     docsUrl: "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
     configType: "guide",
     category: "code",
@@ -452,7 +452,7 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
     notes: [
       {
         type: "info",
-        text: "OmniRoute is registered under modelProviders.openai using Qwen Code's current bare-array V4 format.",
+        text: "LightRoute is registered under modelProviders.openai using Qwen Code's current bare-array V4 format.",
       },
       {
         type: "info",
@@ -477,7 +477,7 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
     "openai": [
       {
         "id": "{{model}}",
-        "name": "{{model}} (OmniRoute)",
+        "name": "{{model}} (LightRoute)",
         "envKey": "OMNIROUTE_API_KEY",
         "baseUrl": "{{baseUrl}}"
       }
@@ -653,7 +653,7 @@ openclaude --provider openai
    * A self-improving RLM coding harness (TypeScript) whose LLM toolkit
    * (prime-agent-ai) supports "any OpenAI-compatible API" + a dedicated
    * "OpenAI Codex (ChatGPT Plus/Pro OAuth)" provider, so it can point at
-   * OmniRoute's OpenAI-compatible base URL like codex/forge. Installed via
+   * LightRoute's OpenAI-compatible base URL like codex/forge. Installed via
    * `curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | sh`;
    * provider chosen at first run via `/login`.
    */
@@ -758,12 +758,12 @@ openclaude --provider openai
       code: [
         "{",
         '  "providers": {',
-        '    "omniroute": {',
+        '    "lightroute": {',
         '      "baseUrl": "http://127.0.0.1:20128/v1",',
         '      "api": "openai-completions",',
-        '      "apiKey": "sk_omniroute",',
+        '      "apiKey": "sk_lightroute",',
         '      "models": [',
-        '        { "id": "auto/best-coding", "name": "OmniRoute best-coding" }',
+        '        { "id": "auto/best-coding", "name": "LightRoute best-coding" }',
         "      ]",
         "    }",
         "  }",
@@ -788,7 +788,7 @@ openclaude --provider openai
     defaultCommand: "crush",
   },
 
-  /** Zed editor's built-in agent via an OpenAI-compatible provider (`omniroute setup-zed`). */
+  /** Zed editor's built-in agent via an OpenAI-compatible provider (`lightroute setup-zed`). */
   zed: {
     id: "zed",
     name: "Zed",
@@ -809,11 +809,11 @@ openclaude --provider openai
     ],
     codeBlock: {
       language: "json",
-      code: `// ~/.config/zed/settings.json — or run: omniroute setup-zed
+      code: `// ~/.config/zed/settings.json — or run: lightroute setup-zed
 {
   "language_models": {
     "openai_compatible": {
-      "omniroute": {
+      "lightroute": {
         "api_url": "{{baseUrl}}",
         "available_models": [
           { "name": "{{model}}", "display_name": "{{model}}", "max_tokens": 200000 }
@@ -895,7 +895,7 @@ OPENAI_API_KEY: "{{apiKey}}"`,
     image: "/providers/cli-generic.svg",
     color: "#111111",
     docsUrl: "https://github.com/can1357/oh-my-pi",
-    description: "Oh My Pi terminal coding agent via OmniRoute",
+    description: "Oh My Pi terminal coding agent via LightRoute",
     configType: "custom",
     category: "agent",
     vendor: "OSS",
@@ -905,7 +905,7 @@ OPENAI_API_KEY: "{{apiKey}}"`,
     notes: [
       {
         type: "info",
-        text: "Oh My Pi reads custom OpenAI-compatible providers from ~/.omp/agent/models.yml. OmniRoute adds itself as a provider with auto-discovery — models appear automatically in omp's /model menu.",
+        text: "Oh My Pi reads custom OpenAI-compatible providers from ~/.omp/agent/models.yml. LightRoute adds itself as a provider with auto-discovery — models appear automatically in omp's /model menu.",
       },
       {
         type: "warning",
@@ -929,11 +929,11 @@ OPENAI_API_KEY: "{{apiKey}}"`,
     notes: [
       {
         type: "info",
-        text: "Letta CLI uses pi-ai which sends OpenAI-compatible requests. OmniRoute configures it as an OpenAI provider with custom base URL.",
+        text: "Letta CLI uses pi-ai which sends OpenAI-compatible requests. LightRoute configures it as an OpenAI provider with custom base URL.",
       },
       {
         type: "info",
-        text: "CLI (Local Mode): OmniRoute auto-configures ~/.letta/lc-local-backend/providers/auth.json. Use 'letta --info' to check if local mode is enabled.",
+        text: "CLI (Local Mode): LightRoute auto-configures ~/.letta/lc-local-backend/providers/auth.json. Use 'letta --info' to check if local mode is enabled.",
       },
       {
         type: "warning",
@@ -992,14 +992,14 @@ OPENAI_API_KEY: "{{apiKey}}"`,
     ],
   },
 
-  /** ★ 5dive agent fleets (cheaper-inference/OmniRoute#11578) — 2026-08-28 */
+  /** ★ 5dive agent fleets (cheaper-inference/LightRoute#11578) — 2026-08-28 */
   "5dive": {
     id: "5dive",
     name: "5dive",
     icon: "hub",
     color: "#7C3AED",
     description:
-      "5dive — self-hosted fleet of long-running coding agents; one auth profile points every claude seat at OmniRoute",
+      "5dive — self-hosted fleet of long-running coding agents; one auth profile points every claude seat at LightRoute",
     docsUrl: "https://5dive.ai",
     configType: "custom",
     category: "agent",
@@ -1020,7 +1020,7 @@ OPENAI_API_KEY: "{{apiKey}}"`,
       {
         step: 5,
         title: "Write the profile",
-        desc: "sudo omniroute configure 5dive --model <id> --auth-profile omniroute",
+        desc: "sudo lightroute configure 5dive --model <id> --auth-profile lightroute",
       },
     ],
     notes: [
@@ -1031,14 +1031,14 @@ OPENAI_API_KEY: "{{apiKey}}"`,
     ],
   },
 
-  /** ★ WhyCodes CLI agent (diegosouzapw/OmniRoute#14096) — 2026-09-18 */
+  /** ★ WhyCodes CLI agent (diegosouzapw/LightRoute#14096) — 2026-09-18 */
   whycodes: {
     id: "whycodes",
     name: "WhyCodes",
     icon: "terminal",
     color: "#2563EB",
     description:
-      "WhyCodes — broad-purpose autonomous CLI agent (TUI, named agents, tools, memory); OpenAI-compatible base URL points at OmniRoute",
+      "WhyCodes — broad-purpose autonomous CLI agent (TUI, named agents, tools, memory); OpenAI-compatible base URL points at LightRoute",
     docsUrl: "https://github.com/whycorporation/whycodes",
     configType: "custom",
     category: "agent",
@@ -1059,18 +1059,18 @@ OPENAI_API_KEY: "{{apiKey}}"`,
       {
         step: 5,
         title: "Write the provider",
-        desc: "omniroute setup-whycodes --model <id>   (or: whycodes provider add omniroute --api-key <key> --base-url <origin>/v1)",
+        desc: "lightroute setup-whycodes --model <id>   (or: whycodes provider add lightroute --api-key <key> --base-url <origin>/v1)",
       },
     ],
     codeBlock: {
       language: "toml",
-      code: `[providers.omniroute]
-name = "omniroute"
+      code: `[providers.lightroute]
+name = "lightroute"
 base_url = "{{baseUrl}}"
 api_key = "{{apiKey}}"
 
 [default_model]
-provider_id = "omniroute"
+provider_id = "lightroute"
 model_id = "{{model}}"
 supports_tools = true`,
     },

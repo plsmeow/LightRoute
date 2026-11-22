@@ -196,13 +196,13 @@ export default function HermesAgentToolCard({
     onToggle?.();
   };
 
-  const setRoleSelection = (roleId: string, model: string, provider = "OmniRoute") => {
+  const setRoleSelection = (roleId: string, model: string, provider = "LightRoute") => {
     setSelections((prev) => ({ ...prev, [roleId]: { model, provider } }));
   };
 
   const applyToAll = (model: string) => {
     const newSel: Record<string, RoleSelection> = {};
-    HERMES_ROLES.forEach((r) => (newSel[r.id] = { model, provider: "OmniRoute" }));
+    HERMES_ROLES.forEach((r) => (newSel[r.id] = { model, provider: "LightRoute" }));
     setSelections(newSel);
   };
 
