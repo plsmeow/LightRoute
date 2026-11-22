@@ -433,7 +433,7 @@ jobs:
         # A step limit, because reaching the job's 350 min limit fails the job and the
         # merge job then publishes nothing. Observed amd64 Bun base: 57 min (2026-11-02).
         timeout-minutes: 80
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           file: Dockerfile.bun
@@ -457,7 +457,7 @@ jobs:
         # Best-effort, same as the Bun base step above.
         continue-on-error: true
         timeout-minutes: 80
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           file: Dockerfile.bun
