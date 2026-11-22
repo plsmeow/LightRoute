@@ -238,50 +238,6 @@ const TOOLS_GROUP: SidebarItemGroup = {
       subtitleKey: "cliAgentsSubtitle",
       icon: "smart_toy",
     },
-    {
-      id: "acp-agents",
-      href: "/dashboard/acp-agents",
-      i18nKey: "acpAgents",
-      subtitleKey: "acpAgentsSubtitle",
-      icon: "device_hub",
-    },
-    {
-      id: "cloud-agents",
-      href: "/dashboard/cloud-agents",
-      i18nKey: "cloudAgents",
-      subtitleKey: "cloudAgentsSubtitle",
-      icon: "cloud",
-    },
-    {
-      id: "conductor",
-      href: "/dashboard/conductor",
-      i18nKey: "conductor",
-      subtitleKey: "conductorSubtitle",
-      icon: "account_tree",
-      labelFallback: "Conductor",
-      subtitleFallback: "CLI-agent fleet",
-    },
-    {
-      id: "orchestration",
-      href: "/dashboard/orchestration",
-      i18nKey: "orchestration",
-      subtitleKey: "orchestrationSubtitle",
-      icon: "account_tree",
-    },
-    {
-      id: "agent-bridge",
-      href: "/dashboard/tools/agent-bridge",
-      i18nKey: "agentBridge",
-      subtitleKey: "agentBridgeSubtitle",
-      icon: "link",
-    },
-    {
-      id: "discovery",
-      href: "/dashboard/discovery",
-      i18nKey: "discovery",
-      subtitleKey: "discoverySubtitle",
-      icon: "travel_explore",
-    },
   ],
 };
 
@@ -461,7 +417,7 @@ const SYSTEM_GROUP: SidebarItemGroup = {
   ],
 };
 
-const COSTS_ITEMS: readonly SidebarItemDefinition[] = [
+const _COSTS_ITEMS: readonly SidebarItemDefinition[] = [
   {
     id: "costs",
     href: "/dashboard/costs",
@@ -533,7 +489,7 @@ const MCP_ITEM: SidebarItemDefinition = {
   icon: "hub",
 };
 
-const AGENTIC_FEATURES_ITEMS: readonly SidebarSectionChild[] = [
+const _AGENTIC_FEATURES_ITEMS: readonly SidebarSectionChild[] = [
   {
     id: "memory",
     href: "/dashboard/memory",
@@ -581,7 +537,7 @@ const AGENTIC_FEATURES_ITEMS: readonly SidebarSectionChild[] = [
   },
 ];
 
-const GAMIFICATION_GROUP: SidebarItemGroup = {
+const _GAMIFICATION_GROUP: SidebarItemGroup = {
   type: "group",
   id: "gamification",
   titleKey: "gamificationGroup",
@@ -779,24 +735,13 @@ export const SIDEBAR_SECTIONS: readonly SidebarSectionDefinition[] = [
     id: "omni-proxy",
     titleKey: "omniProxySection",
     titleFallback: "OmniProxy",
-    children: [
-      ...OMNI_PROXY_ITEMS,
-      TOOLS_GROUP,
-      INTEGRATIONS_GROUP,
-      PROXY_ITEM,
-    ],
+    children: [...OMNI_PROXY_ITEMS, TOOLS_GROUP, INTEGRATIONS_GROUP, PROXY_ITEM],
   },
   {
     id: "analytics",
     titleKey: "analyticsSection",
     titleFallback: "Analytics",
     children: ANALYTICS_ITEMS,
-  },
-  {
-    id: "costs",
-    titleKey: "costsSection",
-    titleFallback: "Costs",
-    children: COSTS_ITEMS,
   },
   {
     id: "monitoring",
