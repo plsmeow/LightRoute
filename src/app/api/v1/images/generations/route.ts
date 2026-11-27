@@ -113,17 +113,16 @@ function hasImageGenerationInput(body: Record<string, unknown>) {
   return false;
 }
 
-// Forward only the host-shaped headers the Gemini Web image handler needs
-// to derive the browser-facing public base URL. Avoid copying the full
-// request header set: it's wider than the handler needs (auth tokens,
-// content-type, etc.) and `Headers.forEach` collapses repeated values, which
-// would silently drop entries if a wider helper were reused for headers
-// that can legitimately repeat (e.g., set-cookie).
-const PUBLIC_BASE_URL_HEADER_KEYS = ["host", "x-forwarded-host", "x-forwarded-proto"] as const;
+const IMAGE_CLIENT_HEADER_KEYS = [
+  "host",
+  "x-forwarded-host",
+  "x-forwarded-proto",
+  "user-agent",
+] as const;
 
-function publicBaseUrlHeaders(headers: Headers): Record<string, string> {
+function imageClientHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const key of PUBLIC_BASE_URL_HEADER_KEYS) {
+  for (const key of IMAGE_CLIENT_HEADER_KEYS) {
     const value = headers.get(key);
     if (value !== null) out[key] = value;
   }
@@ -421,7 +420,7 @@ async function postHandler(request, context) {
                     });
                   }
                 : undefined,
-              clientHeaders: publicBaseUrlHeaders(request.headers),
+              clientHeaders: imageClientHeaders(request.headers),
               // Trusted "loopback"|"lan"|"remote" verdict stamped by the authz
               // pipeline from the real TCP peer (never the spoofable Host
               // header). Only the spawn-capable cursor-agent-image provider

@@ -9,7 +9,7 @@
  */
 import React, { useState, useCallback, useMemo } from "react";
 import { filterUnavailableModelRows } from "@/lib/providers/mergeProviderModelListing";
-import { sortModelsFreeFirst, isModelFreeBadge } from "@/shared/utils/freeModels";
+import { isModelFreeBadge } from "@/shared/utils/freeModels";
 import { Button, Input } from "@/shared/components";
 import {
   matchesModelCatalogQuery,
@@ -29,6 +29,9 @@ import { useModelVisionOverrides } from "../hooks/useModelVisionOverrides";
 import { useModelOutputOverrides } from "../hooks/useModelOutputOverrides";
 import PassthroughModelRow, { type PassthroughModelRowProps } from "./PassthroughModelRow";
 import { useProviderContextOverrides } from "../hooks/useProviderContextOverrides";
+import type { ProviderSpecialtyModel } from "@/lib/providerModels/providerSpecialtyModels";
+import ProviderSpecialtyModelRow from "./ProviderSpecialtyModelRow";
+import { filterProviderModelRows, toggleProviderModelRows } from "./providerModelRows";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -48,6 +51,7 @@ export interface CompatibleModelsSectionProps {
   /** model id → combo names that reference it, for the "used in combo" badge. */
   comboUsage?: Record<string, string[]>;
   availableModels?: CompatModelRow[];
+  specialtyModels?: ProviderSpecialtyModel[];
   syncedCatalogAuthoritative?: boolean;
   customModels?: CompatModelRow[];
   fallbackModels?: CompatModelRow[];
@@ -71,8 +75,8 @@ export interface CompatibleModelsSectionProps {
   compatSavingModelId?: string;
   onModelsChanged?: () => void;
   isModelHidden: (modelId: string) => boolean;
-  onToggleHidden: (modelId: string, hidden: boolean) => Promise<void>;
-  onBulkToggleHidden: (modelIds: string[], hidden: boolean) => Promise<void>;
+  onToggleHidden: (modelId: string, hidden: boolean, modality?: string) => Promise<void>;
+  onBulkToggleHidden: (modelIds: string[], hidden: boolean, modality?: string) => Promise<void>;
   bulkTogglePending?: boolean;
   togglingModelId?: string | null;
   onTestModel?: (modelId: string, fullModel: string) => Promise<void>;
@@ -95,6 +99,7 @@ export default function CompatibleModelsSection({
   modelAliases,
   comboUsage,
   availableModels = [],
+  specialtyModels = [],
   syncedCatalogAuthoritative = false,
   customModels = [],
   fallbackModels = [],
@@ -280,12 +285,18 @@ export default function CompatibleModelsSection({
       freeFilter === "all" ? true : freeFilter === "free" ? model.isFree : !model.isFree;
     return matchesQuery && matchesVisibility && matchesFreeFilter;
   });
-  const displayModels = sortFreeFirst
-    ? sortModelsFreeFirst(filteredModels, { isFree: (m) => m.isFree, key: (m) => m.modelId })
-    : filteredModels;
-  const activeCount = allModels.filter((model) => !model.isHidden).length;
-  const hiddenFilteredCount = filteredModels.filter((model) => model.isHidden).length;
-  const visibleFilteredCount = filteredModels.length - hiddenFilteredCount;
+  const { displayRows, activeCount, totalCount, hiddenFilteredCount } = filterProviderModelRows({
+    allModels,
+    filteredModels,
+    specialtyModels,
+    providerId: providerStorageAlias,
+    modelFilter,
+    visibilityFilter,
+    freeFilter,
+    sortFreeFirst,
+    getId: (model) => model.modelId,
+  });
+  const visibleFilteredCount = displayRows.length - hiddenFilteredCount;
 
   const resolveAlias = useCallback(
     (modelId: string, workingAliases: Record<string, string>) =>
@@ -419,26 +430,16 @@ export default function CompatibleModelsSection({
         <p className="text-xs text-text-muted">{t("addConnectionToImport")}</p>
       )}
 
-      {allModels.length > 0 && (
+      {totalCount > 0 && (
         <div className="flex flex-col gap-3">
           <ModelVisibilityToolbar
             t={t}
             filterValue={modelFilter}
             onFilterChange={setModelFilter}
             activeCount={activeCount}
-            totalCount={allModels.length}
-            onSelectAll={() =>
-              onBulkToggleHidden(
-                filteredModels.map((model) => model.modelId),
-                false
-              )
-            }
-            onDeselectAll={() =>
-              onBulkToggleHidden(
-                filteredModels.map((model) => model.modelId),
-                true
-              )
-            }
+            totalCount={totalCount}
+            onSelectAll={() => toggleProviderModelRows(displayRows, false, onBulkToggleHidden)}
+            onDeselectAll={() => toggleProviderModelRows(displayRows, true, onBulkToggleHidden)}
             selectAllDisabled={hiddenFilteredCount === 0 || bulkTogglePending}
             deselectAllDisabled={visibleFilteredCount === 0 || bulkTogglePending}
             visibilityFilter={visibilityFilter}
@@ -447,95 +448,111 @@ export default function CompatibleModelsSection({
             onFreeFilterChange={setFreeFilter}
             sortFreeFirst={sortFreeFirst}
             onSortFreeFirstChange={setSortFreeFirst}
-            onTestAll={() => {
-              const targets = filteredModels
-                .filter((m) => !m.isHidden)
-                .map((m) => ({
-                  modelId: m.modelId,
-                  fullModel: `${providerDisplayAlias}/${m.modelId}`,
-                }));
-              return onTestAll?.(targets);
-            }}
+            onTestAll={
+              filteredModels.some((model) => !model.isHidden)
+                ? () => {
+                    const targets = filteredModels
+                      .filter((m) => !m.isHidden)
+                      .map((m) => ({
+                        modelId: m.modelId,
+                        fullModel: `${providerDisplayAlias}/${m.modelId}`,
+                      }));
+                    return onTestAll?.(targets);
+                  }
+                : undefined
+            }
             testingAll={testingAll}
             testProgress={testProgress}
             autoHideFailed={autoHideFailed}
             onAutoHideFailedChange={onAutoHideFailedChange}
           />
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            {displayModels.map(
-              ({ modelId, alias, displayName, isHidden, source, isFree, supportsVision }) => {
-                const fullModel = `${providerDisplayAlias}/${modelId}`;
+            {displayRows.map((row) => {
+              if (row.specialty)
                 return (
-                  <PassthroughModelRow
-                    key={`${providerStorageAlias}:${modelId}`}
-                    modelId={modelId}
-                    endpointInfo={(() => {
-                      const discovered = availableModels.find((row) => row.id === modelId);
-                      const selected = customModelMap.get(modelId);
-                      const catalog = fallbackModels.find((row) => row.id === modelId);
-                      return {
-                        supportedEndpoints:
-                          selected?.supportedEndpoints ??
-                          discovered?.supportedEndpoints ??
-                          catalog?.supportedEndpoints,
-                        endpointCapabilitySource:
-                          selected?.endpointCapabilitySource ??
-                          discovered?.endpointCapabilitySource ??
-                          catalog?.endpointCapabilitySource,
-                        discoveredEndpoints: discovered?.supportedEndpoints,
-                        resettable: Boolean(
-                          discovered && selected?.endpointCapabilitySource === "operator"
-                        ),
-                        onChanged: onModelsChanged,
-                        adapterStatuses: endpointAdapters,
-                      };
-                    })()}
-                    fullModel={fullModel}
-                    alias={alias}
-                    displayName={displayName}
-                    source={source}
-                    isFree={isFree}
-                    isHidden={isHidden}
-                    combos={comboUsage?.[modelId]}
+                  <ProviderSpecialtyModelRow
+                    key={row.key}
+                    model={row.specialty}
                     copied={copied}
                     onCopy={onCopy}
-                    onDeleteAlias={
-                      source === "custom" || source === "manual"
-                        ? () => handleDeleteModel(modelId, alias)
-                        : source === "alias" && alias
-                          ? () => onDeleteAlias(alias)
-                          : undefined
-                    }
-                    onSetAlias={(a) => onSetAlias(modelId, a, providerStorageAlias)}
                     t={t}
-                    showDeveloperToggle={!isAnthropic}
-                    effectiveModelNormalize={effectiveModelNormalize}
-                    effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
-                    getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
-                    saveModelCompatFlags={saveModelCompatFlags}
-                    compatDisabled={compatSavingModelId === modelId}
+                    disabled={togglingModelId === row.id || !!bulkTogglePending}
                     onToggleHidden={onToggleHidden}
-                    togglingHidden={togglingModelId === modelId}
-                    onTestModel={onTestModel}
-                    testStatus={modelTestStatus?.[modelId] || null}
-                    testingModel={testingModelId === modelId}
-                    provider={providerStorageAlias}
-                    supportsVision={visionOverrides.overrides[modelId] ?? supportsVision}
-                    visionOverride={visionOverrides.overrides[modelId]}
-                    onSaveVisionOverride={visionOverrides.save}
-                    savingVisionOverride={visionOverrides.savingModelId !== null}
-                    maxOutputTokenOverride={outputOverrides.overrides[modelId] ?? null}
-                    onSaveMaxOutputTokenOverride={outputOverrides.save}
-                    savingOutputOverride={outputOverrides.savingModelId === modelId}
-                    contextWindowOverride={contextOverrides[modelId] ?? null}
-                    onSaveContextWindowOverride={saveContextWindowOverride}
-                    savingContextOverride={savingContextModelId === modelId}
                   />
                 );
-              }
-            )}
+              const { modelId, alias, displayName, isHidden, source, isFree, supportsVision } =
+                row.model;
+              const fullModel = `${providerDisplayAlias}/${modelId}`;
+              return (
+                <PassthroughModelRow
+                  key={`${providerStorageAlias}:${modelId}`}
+                  modelId={modelId}
+                  endpointInfo={(() => {
+                    const discovered = availableModels.find((row) => row.id === modelId);
+                    const selected = customModelMap.get(modelId);
+                    const catalog = fallbackModels.find((row) => row.id === modelId);
+                    return {
+                      supportedEndpoints:
+                        selected?.supportedEndpoints ??
+                        discovered?.supportedEndpoints ??
+                        catalog?.supportedEndpoints,
+                      endpointCapabilitySource:
+                        selected?.endpointCapabilitySource ??
+                        discovered?.endpointCapabilitySource ??
+                        catalog?.endpointCapabilitySource,
+                      discoveredEndpoints: discovered?.supportedEndpoints,
+                      resettable: Boolean(
+                        discovered && selected?.endpointCapabilitySource === "operator"
+                      ),
+                      onChanged: onModelsChanged,
+                      adapterStatuses: endpointAdapters,
+                    };
+                  })()}
+                  fullModel={fullModel}
+                  alias={alias}
+                  displayName={displayName}
+                  source={source}
+                  isFree={isFree}
+                  isHidden={isHidden}
+                  combos={comboUsage?.[modelId]}
+                  copied={copied}
+                  onCopy={onCopy}
+                  onDeleteAlias={
+                    source === "custom" || source === "manual"
+                      ? () => handleDeleteModel(modelId, alias)
+                      : source === "alias" && alias
+                        ? () => onDeleteAlias(alias)
+                        : undefined
+                  }
+                  onSetAlias={(a) => onSetAlias(modelId, a, providerStorageAlias)}
+                  t={t}
+                  showDeveloperToggle={!isAnthropic}
+                  effectiveModelNormalize={effectiveModelNormalize}
+                  effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
+                  getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
+                  saveModelCompatFlags={saveModelCompatFlags}
+                  compatDisabled={compatSavingModelId === modelId}
+                  onToggleHidden={onToggleHidden}
+                  togglingHidden={togglingModelId === modelId}
+                  onTestModel={onTestModel}
+                  testStatus={modelTestStatus?.[modelId] || null}
+                  testingModel={testingModelId === modelId}
+                  provider={providerStorageAlias}
+                  supportsVision={visionOverrides.overrides[modelId] ?? supportsVision}
+                  visionOverride={visionOverrides.overrides[modelId]}
+                  onSaveVisionOverride={visionOverrides.save}
+                  savingVisionOverride={visionOverrides.savingModelId !== null}
+                  maxOutputTokenOverride={outputOverrides.overrides[modelId] ?? null}
+                  onSaveMaxOutputTokenOverride={outputOverrides.save}
+                  savingOutputOverride={outputOverrides.savingModelId === modelId}
+                  contextWindowOverride={contextOverrides[modelId] ?? null}
+                  onSaveContextWindowOverride={saveContextWindowOverride}
+                  savingContextOverride={savingContextModelId === modelId}
+                />
+              );
+            })}
           </div>
-          {filteredModels.length === 0 && modelFilter && (
+          {displayRows.length === 0 && modelFilter && (
             <p className="py-2 text-sm text-text-muted">
               {providerText(t, "noModelsMatch", `No models match "${modelFilter}"`, {
                 filter: modelFilter,

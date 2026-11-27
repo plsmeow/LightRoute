@@ -28,7 +28,6 @@ test("buildProviderValidateRequestBody forwards accountId from formData (#19304)
     provider: "cloudflare-ai",
     apiKey: "test-token",
     formData: {
-      customUserAgent: "",
       baseUrl: "",
       region: "",
       awsAccessKeyId: "",
@@ -53,7 +52,6 @@ test("buildProviderValidateRequestBody sets accountId to undefined when empty (#
     provider: "cloudflare-ai",
     apiKey: "test-token",
     formData: {
-      customUserAgent: "",
       baseUrl: "",
       region: "",
       awsAccessKeyId: "",

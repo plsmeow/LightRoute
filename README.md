@@ -39,9 +39,17 @@ LightRoute strips that work out and keeps the routing core.
 - Removed the broken `ModelCompatPopover` from model rows.
 - Removed unused sidebar groups: Agentic Features, Compression Context, Gamification, Costs/Teams, and Audit extras.
 
+### Provider scope
+
+The built-in catalogue and executor registry include only Antigravity, OpenAI Codex, Kiro, AgentRouter, OpenCode Go, Gemini Web, and DeepSeek Web. Existing compatible providers ArtBloom, BudsAI, cn, coarena, freegg, FujCloud, numes, and tokenharbor keep their connections and credentials. Startup removes other saved provider configurations and their synced catalogues without deleting historical usage or request logs.
+
 ### Provider User-Agent override
 
-Custom providers now have a **Custom User-Agent** field in the create/edit modal. The value is stored on the provider node and inherited by every key/connection attached to that provider, so it no longer has to be repeated per key.
+Compatible providers forward the incoming `User-Agent` by default. Turn on **Change User-Agent** in the provider settings to use an OpenCode, Codex, Pi, Oh My Pi, Claude, or DeepSeek Harness preset, or enter a custom value. This applies to all keys attached to the provider.
+
+### Provider model catalogue
+
+**Available Models** shows chat, image, audio, and other model types in the same grid. Search and visibility controls apply to the entire grid.
 
 ### Local-network mode
 

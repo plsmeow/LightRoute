@@ -16,7 +16,7 @@ import Icon from "@/shared/components/Icon";
 import { useState } from "react";
 import { ActionBar, AutoGrid, Button } from "@/shared/components";
 import { matchesModelCatalogQuery } from "@/shared/utils/modelCatalogSearch";
-import { isFreeModel, sortModelsFreeFirst } from "@/shared/utils/freeModels";
+import { isFreeModel } from "@/shared/utils/freeModels";
 import {
   getDisplayModelAlias,
   providerText,
@@ -27,6 +27,9 @@ import PassthroughModelsSection from "./PassthroughModelsSection";
 import CompatibleModelsSection from "./CompatibleModelsSection";
 import { useProviderContextOverrides } from "../hooks/useProviderContextOverrides";
 import type { ModelCompatSavePatch } from "../hooks/useModelVisibilityHandlers";
+import type { ProviderSpecialtyModel } from "@/lib/providerModels/providerSpecialtyModels";
+import ProviderSpecialtyModelRow from "./ProviderSpecialtyModelRow";
+import { filterProviderModelRows, toggleProviderModelRows } from "./providerModelRows";
 
 export interface ProviderModelsSectionProps {
   // Provider identity
@@ -52,9 +55,11 @@ export interface ProviderModelsSectionProps {
     id: string;
     name?: string;
     source?: string;
+    isFree?: boolean;
     supportedEndpoints?: string[];
     endpointCapabilitySource?: string;
   }>;
+  specialtyModels?: ProviderSpecialtyModel[];
   modelMeta: {
     customModels: any[];
     modelCompatOverrides?: any[];
@@ -110,11 +115,17 @@ export interface ProviderModelsSectionProps {
   setAutoHideFailed: (v: boolean) => void;
   setVisibilityFilter: (v: "all" | "visible" | "hidden") => void;
   saveModelCompatFlags: (modelId: string, patch: ModelCompatSavePatch) => Promise<void>;
-  handleToggleModelHidden: (providerKey: string, modelId: string, hidden: boolean) => Promise<void>;
+  handleToggleModelHidden: (
+    providerKey: string,
+    modelId: string,
+    hidden: boolean,
+    modality?: string
+  ) => Promise<void>;
   handleBulkToggleModelHidden: (
     providerKey: string,
     modelIds: string[],
-    hidden: boolean
+    hidden: boolean,
+    modality?: string
   ) => Promise<void>;
   handleClearAllModels: () => Promise<void>;
   onTestModel: (modelId: string, fullModel: string) => Promise<void>;
@@ -143,6 +154,7 @@ export default function ProviderModelsSection({
   compatibleSupportsModelImport,
   allowModelImport,
   models,
+  specialtyModels = [],
   modelMeta,
   modelAliases,
   comboUsage,
@@ -303,6 +315,7 @@ export default function ProviderModelsSection({
           modelAliases={modelAliases}
           comboUsage={comboUsage}
           availableModels={syncedAvailableModels}
+          specialtyModels={specialtyModels}
           syncedCatalogAuthoritative={syncedCatalogAuthoritative}
           customModels={modelMeta.customModels}
           fallbackModels={compatibleFallbackModels}
@@ -326,9 +339,15 @@ export default function ProviderModelsSection({
           onModelsChanged={fetchProviderModelMeta}
           allowImport={allowModelImport && compatibleSupportsModelImport}
           isModelHidden={effectiveModelHidden}
-          onToggleHidden={(modelId, hidden) => handleToggleModelHidden(providerId, modelId, hidden)}
-          onBulkToggleHidden={(modelIds, hidden) =>
-            handleBulkToggleModelHidden(providerId, modelIds, hidden)
+          onToggleHidden={(modelId, hidden, modality) =>
+            modality === undefined
+              ? handleToggleModelHidden(providerId, modelId, hidden)
+              : handleToggleModelHidden(providerId, modelId, hidden, modality)
+          }
+          onBulkToggleHidden={(modelIds, hidden, modality) =>
+            modality === undefined
+              ? handleBulkToggleModelHidden(providerId, modelIds, hidden)
+              : handleBulkToggleModelHidden(providerId, modelIds, hidden, modality)
           }
           bulkTogglePending={bulkVisibilityAction !== null}
           togglingModelId={togglingModelId}
@@ -388,6 +407,7 @@ export default function ProviderModelsSection({
           catalogModels={models}
           syncedCatalogAuthoritative={syncedCatalogAuthoritative}
           availableModels={syncedAvailableModels}
+          specialtyModels={specialtyModels}
           customModels={modelMeta.customModels}
           endpointAdapters={modelMeta.endpointAdapters ?? {}}
           description={passthroughDescription}
@@ -404,9 +424,15 @@ export default function ProviderModelsSection({
           saveModelCompatFlags={saveModelCompatFlags}
           compatSavingModelId={compatSavingModelId}
           isModelHidden={effectiveModelHidden}
-          onToggleHidden={(modelId, hidden) => handleToggleModelHidden(providerId, modelId, hidden)}
-          onBulkToggleHidden={(modelIds, hidden) =>
-            handleBulkToggleModelHidden(providerId, modelIds, hidden)
+          onToggleHidden={(modelId, hidden, modality) =>
+            modality === undefined
+              ? handleToggleModelHidden(providerId, modelId, hidden)
+              : handleToggleModelHidden(providerId, modelId, hidden, modality)
+          }
+          onBulkToggleHidden={(modelIds, hidden, modality) =>
+            modality === undefined
+              ? handleBulkToggleModelHidden(providerId, modelIds, hidden)
+              : handleBulkToggleModelHidden(providerId, modelIds, hidden, modality)
           }
           bulkTogglePending={bulkVisibilityAction !== null}
           togglingModelId={togglingModelId}
@@ -446,7 +472,7 @@ export default function ProviderModelsSection({
       </ActionBar>
     ) : null;
 
-  if (models.length === 0) {
+  if (models.length === 0 && specialtyModels.length === 0) {
     return (
       <div>
         {importButton}
@@ -471,7 +497,7 @@ export default function ProviderModelsSection({
   const modelsWithVisibility = models.map((model) => ({
     ...model,
     isHidden: effectiveModelHidden(model.id),
-    isFree: isFreeModel(providerId, { id: model.id, isFree: (model as any).isFree }),
+    isFree: isFreeModel(providerId, { id: model.id, isFree: model.isFree }),
   }));
   const filteredModels = modelsWithVisibility.filter((model) => {
     const matchesQuery = matchesModelCatalogQuery(modelFilter, {
@@ -489,12 +515,18 @@ export default function ProviderModelsSection({
       freeFilter === "all" ? true : freeFilter === "free" ? model.isFree : !model.isFree;
     return matchesQuery && matchesVisibility && matchesFreeFilter;
   });
-  const displayModels = sortFreeFirst
-    ? sortModelsFreeFirst(filteredModels, { isFree: (m) => m.isFree, key: (m) => m.id })
-    : filteredModels;
-  const activeCount = modelsWithVisibility.filter((m) => !m.isHidden).length;
-  const hiddenFilteredCount = filteredModels.filter((m) => m.isHidden).length;
-  const visibleFilteredCount = filteredModels.length - hiddenFilteredCount;
+  const { displayRows, activeCount, totalCount, hiddenFilteredCount } = filterProviderModelRows({
+    allModels: modelsWithVisibility,
+    filteredModels,
+    specialtyModels,
+    providerId,
+    modelFilter,
+    visibilityFilter,
+    freeFilter,
+    sortFreeFirst,
+    getId: (model) => model.id,
+  });
+  const visibleFilteredCount = displayRows.length - hiddenFilteredCount;
   const testAllTargets = filteredModels
     .filter((m) => !m.isHidden)
     .map((m) => ({ modelId: m.id, fullModel: `${providerDisplayAlias}/${m.id}` }));
@@ -502,30 +534,26 @@ export default function ProviderModelsSection({
   return (
     <div>
       {importButton}
-      {modelsWithVisibility.length > 0 && (
+      {totalCount > 0 && (
         <ModelVisibilityToolbar
           t={t}
           filterValue={modelFilter}
           onFilterChange={setModelFilter}
           activeCount={activeCount}
-          totalCount={modelsWithVisibility.length}
+          totalCount={totalCount}
           onSelectAll={() =>
-            handleBulkToggleModelHidden(
-              providerId,
-              filteredModels.map((model) => model.id),
-              false
+            toggleProviderModelRows(displayRows, false, (ids, hidden, modality) =>
+              handleBulkToggleModelHidden(providerId, ids, hidden, modality)
             )
           }
           onDeselectAll={() =>
-            handleBulkToggleModelHidden(
-              providerId,
-              filteredModels.map((model) => model.id),
-              true
+            toggleProviderModelRows(displayRows, true, (ids, hidden, modality) =>
+              handleBulkToggleModelHidden(providerId, ids, hidden, modality)
             )
           }
           selectAllDisabled={hiddenFilteredCount === 0 || bulkVisibilityAction !== null}
           deselectAllDisabled={visibleFilteredCount === 0 || bulkVisibilityAction !== null}
-          onTestAll={() => handleTestAll(testAllTargets)}
+          onTestAll={testAllTargets.length ? () => handleTestAll(testAllTargets) : undefined}
           testingAll={testingAll}
           testProgress={testProgress}
           visibilityFilter={visibilityFilter}
@@ -539,7 +567,22 @@ export default function ProviderModelsSection({
         />
       )}
       <AutoGrid>
-        {displayModels.map((model) => {
+        {displayRows.map((row) => {
+          if (row.specialty)
+            return (
+              <ProviderSpecialtyModelRow
+                key={row.key}
+                model={row.specialty}
+                copied={copied}
+                onCopy={onCopy}
+                t={t}
+                disabled={togglingModelId === row.id || bulkVisibilityAction !== null}
+                onToggleHidden={(id, hidden, modality) =>
+                  handleToggleModelHidden(providerId, id, hidden, modality)
+                }
+              />
+            );
+          const model = row.model;
           return (
             <ModelRow
               key={model.id}
@@ -594,7 +637,7 @@ export default function ProviderModelsSection({
             />
           );
         })}
-        {filteredModels.length === 0 && modelFilter && (
+        {displayRows.length === 0 && modelFilter && (
           <p className="col-span-full text-sm text-text-muted py-2">
             {providerText(t, "noModelsMatch", `No models match "${modelFilter}"`, {
               filter: modelFilter,

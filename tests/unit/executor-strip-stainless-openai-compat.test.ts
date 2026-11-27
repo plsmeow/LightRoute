@@ -58,13 +58,13 @@ test("does NOT strip X-Stainless-* for non-OpenAI-compatible endpoints", () => {
   assert.equal(headers["X-Stainless-Package-Version"], "1.0.0");
 });
 
-test("normalizes SDK-derived User-Agent on OpenAI-compatible request", () => {
+test("normalizes an SDK-derived User-Agent on built-in OpenAI-style requests", () => {
   const headers: Record<string, string> = {
     "User-Agent": "OpenAI/NodeJS 4.20.0 undici",
   };
   base.stripStainlessHeadersForOpenAICompat(
     headers,
-    "openai-compatible-acme",
+    "groq",
     "https://acme.example/v1/chat/completions"
   );
   assert.equal(headers["User-Agent"], "Mozilla/5.0 (compatible; OpenAI Compatible)");

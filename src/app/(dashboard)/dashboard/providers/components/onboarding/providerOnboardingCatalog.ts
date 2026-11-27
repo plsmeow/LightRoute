@@ -124,10 +124,9 @@ export function buildProviderSpecificData(input: {
   baseUrl?: string;
   region?: string;
   cx?: string;
-  customUserAgent?: string;
 }): Record<string, string> | null {
   const providerSpecificData = Object.fromEntries(
-    Object.entries(input)
+    Object.entries({ baseUrl: input.baseUrl, region: input.region, cx: input.cx })
       .map(([key, value]) => [key, typeof value === "string" ? value.trim() : ""])
       .filter(([, value]) => value.length > 0)
   );

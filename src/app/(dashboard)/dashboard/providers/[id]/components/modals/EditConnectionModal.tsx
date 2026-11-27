@@ -162,7 +162,6 @@ export default function EditConnectionModal({
     tag: "",
     routingTags: "",
     excludedModels: "",
-    customUserAgent: "",
     huggingfaceBillTo: "",
     accountId: "",
     codexReasoningEffort: "medium",
@@ -318,7 +317,6 @@ export default function EditConnectionModal({
       const existingAwsAccessKeyId =
         stringField(connection.providerSpecificData?.accessKeyId) ||
         stringField(connection.providerSpecificData?.awsAccessKeyId);
-      const existingCustomUserAgent = stringField(connection.providerSpecificData?.customUserAgent);
       const existingHuggingfaceBillTo = stringField(connection.providerSpecificData?.billTo);
       const existingOpenRouterPreset = stringField(connection.providerSpecificData?.preset);
       const existingCx = stringField(connection.providerSpecificData?.cx);
@@ -398,7 +396,6 @@ export default function EditConnectionModal({
           connection.providerSpecificData?.excludedModels ??
             connection.providerSpecificData?.excluded_models
         ),
-        customUserAgent: existingCustomUserAgent,
         huggingfaceBillTo: existingHuggingfaceBillTo,
         accountId: existingAccountId,
         codexReasoningEffort: codexRequestDefaults.reasoningEffort,
@@ -466,8 +463,7 @@ export default function EditConnectionModal({
       setNewExtraKey("");
       setOpenRouterPreset(existingOpenRouterPreset);
       setShowAdvanced(
-        !!existingCustomUserAgent ||
-          !!existingHuggingfaceBillTo ||
+        !!existingHuggingfaceBillTo ||
           normalizeM365TierValue(connection.providerSpecificData?.tier) !== ""
       );
       setTestResult(null);
@@ -1262,13 +1258,6 @@ export default function EditConnectionModal({
                 id="edit-connection-advanced-settings"
                 className="flex flex-col gap-3 pl-2 border-l-2 border-border"
               >
-                <Input
-                  label={t("customUserAgentLabel")}
-                  value={formData.customUserAgent}
-                  onChange={(e) => setFormData({ ...formData, customUserAgent: e.target.value })}
-                  placeholder="my-app/1.0"
-                  hint={t("customUserAgentHint")}
-                />
                 {provider === "huggingface" && (
                   <Input
                     label={t("huggingfaceBillToLabel")}

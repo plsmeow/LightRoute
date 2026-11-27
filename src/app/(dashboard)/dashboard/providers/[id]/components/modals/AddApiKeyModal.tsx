@@ -1038,13 +1038,6 @@ export default function AddApiKeyModal({
                 id="add-api-key-advanced-settings"
                 className="flex flex-col gap-3 pl-2 border-l-2 border-border"
               >
-                <Input
-                  label={t("customUserAgentLabel")}
-                  value={formData.customUserAgent}
-                  onChange={(e) => setFormData({ ...formData, customUserAgent: e.target.value })}
-                  placeholder="my-app/1.0"
-                  hint={t("customUserAgentHint")}
-                />
                 {provider === "huggingface" && (
                   <Input
                     label={t("huggingfaceBillToLabel")}

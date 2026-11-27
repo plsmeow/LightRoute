@@ -938,9 +938,14 @@ export async function GET(
             guard: getProviderValidationGuard(),
             proxyConfig: proxy,
             method: "GET",
-            headers: isNamedOpenAIStyleProvider(provider)
-              ? buildNamedOpenAiStyleHeaders(provider, token)
-              : buildOptionalBearerHeaders(token),
+            headers: isOpenAICompatibleProvider(provider)
+              ? applyConnectionCustomHeaders(
+                  buildOptionalBearerHeaders(token),
+                  connection.providerSpecificData
+                )
+              : isNamedOpenAIStyleProvider(provider)
+                ? buildNamedOpenAiStyleHeaders(provider, token)
+                : buildOptionalBearerHeaders(token),
           });
 
           if (response.ok) {

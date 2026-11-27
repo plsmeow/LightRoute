@@ -1079,6 +1079,7 @@ export async function handleAudioTranscription({
   resolvedModel = null,
   remoteMediaFetcher = null,
   signal = null,
+  clientUserAgent = null,
 }: {
   formData: FormData;
   credentials?: TranscriptionCredentials | null;
@@ -1088,6 +1089,7 @@ export async function handleAudioTranscription({
   remoteMediaFetcher?: RemoteMediaFetcher | null;
   /** Client request abort signal; kills spawned helpers (Gemini Live ffmpeg) on disconnect. */
   signal?: AbortSignal | null;
+  clientUserAgent?: string | null;
 }): Promise<Response> {
   const model = formData.get("model");
   if (typeof model !== "string" || !model) {
@@ -1259,7 +1261,10 @@ export async function handleAudioTranscription({
   try {
     const res = await fetch(providerConfig.baseUrl, {
       method: "POST",
-      headers: { ...buildAuthHeaders(providerConfig, token), "Content-Type": multipartCT },
+      headers: {
+        ...buildAuthHeaders(providerConfig, token, clientUserAgent),
+        "Content-Type": multipartCT,
+      },
       body: multipartBody,
     });
 

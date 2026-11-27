@@ -120,7 +120,8 @@ async function transcribeWithModel(
   apiKeyId?: string | null,
   apiKeyName?: string | null,
   allowedConnections: string[] | null = null,
-  signal: AbortSignal | null = null
+  signal: AbortSignal | null = null,
+  clientUserAgent?: string | null
 ): Promise<Response> {
   // Provider nodes eligible for transcription: this route's own audio type plus
   // general chat/responses gateways. Remote hosts are opt-in (default OFF).
@@ -226,6 +227,7 @@ async function transcribeWithModel(
     resolvedModel,
     remoteMediaFetcher: fetchRemoteMedia,
     signal,
+    clientUserAgent,
   });
 
   const connectionId = (credentials as { connectionId?: string } | null)?.connectionId || undefined;
@@ -320,7 +322,8 @@ async function transcribeWithAlias(
   apiKeyName: string | null,
   apiKey: string | null,
   allowedConnections: string[] | null,
-  signal: AbortSignal | null = null
+  signal: AbortSignal | null = null,
+  clientUserAgent?: string | null
 ) {
   const resolvedModel = await resolveTranscriptionAlias(modelStr);
   if (
@@ -338,7 +341,8 @@ async function transcribeWithAlias(
     apiKeyId,
     apiKeyName,
     allowedConnections,
-    signal
+    signal,
+    clientUserAgent
   );
 }
 
@@ -407,7 +411,8 @@ export async function POST(request) {
               apiKeyId,
               apiKeyName,
               allowedConnections,
-              request.signal ?? null
+              request.signal ?? null,
+              request.headers.get("user-agent")
             ),
           isModelAvailable: createComboTargetKeyGate(policy, modelStr),
           log,
@@ -430,6 +435,7 @@ export async function POST(request) {
     apiKeyName,
     policy.apiKey,
     allowedConnections,
-    request.signal ?? null
+    request.signal ?? null,
+    request.headers.get("user-agent")
   );
 }

@@ -24,7 +24,6 @@ test("buildProviderValidateRequestBody includes trimmed accountId when provided"
     provider: "cloudflare-ai",
     apiKey: "test-token",
     formData: {
-      customUserAgent: "",
       baseUrl: "",
       region: "",
       awsAccessKeyId: "",
@@ -49,7 +48,6 @@ test("buildProviderValidateRequestBody omits accountId when empty or missing", (
     provider: "cloudflare-ai",
     apiKey: "test-token",
     formData: {
-      customUserAgent: "",
       baseUrl: "",
       region: "",
       awsAccessKeyId: "",

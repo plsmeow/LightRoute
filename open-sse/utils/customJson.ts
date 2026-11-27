@@ -20,7 +20,7 @@ import {
   CUSTOM_JSON_METHODS,
   CUSTOM_JSON_VARIABLES,
 } from "../config/customJson.ts";
-import { isForbiddenUpstreamHeaderName } from "../executors/default/customHeaders.ts";
+import { isForbiddenUpstreamHeaderName } from "@/shared/constants/upstreamHeaders";
 import { isLoopbackHostname } from "./urlHost.ts";
 
 type JsonRecord = Record<string, unknown>;

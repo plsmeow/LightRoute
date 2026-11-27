@@ -1,3 +1,4 @@
+import { applyCompatibleUserAgent } from "@omniroute/open-sse/services/compatibleProviderHeaders.ts";
 import { handleRerank } from "@omniroute/open-sse/handlers/rerank.ts";
 import { recordModalCallCost } from "@/domain/costRules";
 import { MODAL_LEDGER_SERVICE_TIER } from "@/lib/db/costLedger";
@@ -98,6 +99,7 @@ async function postHandler(request, _context) {
       apiKeyName: policy.apiKeyInfo?.name || null,
       allowedConnections: scope.allowedConnections,
       isComboTargetAllowed: createComboTargetKeyGate(policy, body.model),
+      clientUserAgent: request.headers.get("user-agent"),
     }
   );
 }
@@ -113,6 +115,7 @@ type ValidatedRerankBody = {
 type RerankRequestMeta = {
   apiKeyId?: string | null;
   apiKeyName?: string | null;
+  clientUserAgent?: string | null;
   /** GHSA-3w2r: the caller key's connection scope (null/undefined = unscoped). */
   allowedConnections?: string[] | null;
   /** GHSA-3w2r: combo per-target model gate for the caller key (undefined = none). */
@@ -321,12 +324,18 @@ export async function handleValidatedRerankRequestBody(
           return_documents: body.return_documents as boolean | undefined,
         })
       );
+      const upstreamHeaders = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+      applyCompatibleUserAgent(
+        upstreamHeaders,
+        credentials.providerSpecificData?.customHeaders,
+        meta.clientUserAgent
+      );
       const upstreamInit: RequestInit = {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: upstreamHeaders,
         body: upstreamBody,
       };
       try {

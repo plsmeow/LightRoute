@@ -121,7 +121,6 @@ import { detachClaudeCodeRewriteTargets } from "./claudeOauthBodyIsolation.ts";
 import {
   mergeUpstreamExtraHeaders,
   setUserAgentHeader,
-  applyConfiguredUserAgent,
   applyHuggingFaceBillToHeader,
   stripStainlessHeadersForOpenAICompat,
 } from "./base/headers.ts";
@@ -918,7 +917,6 @@ export class BaseExecutor {
         undefined,
         body
       );
-      applyConfiguredUserAgent(headers, requestCredentials?.providerSpecificData);
       if (this.provider === "huggingface") {
         applyHuggingFaceBillToHeader(headers, requestCredentials?.providerSpecificData);
       }

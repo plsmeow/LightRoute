@@ -1,3 +1,4 @@
+import { applyCompatibleUserAgent } from "../compatibleProviderHeaders.ts";
 /**
  * usage/openaiCompatible.ts — a provider-agnostic quota fetcher for
  * `openai-compatible-*` and `anthropic-compatible-*` connections (#13616).
@@ -175,7 +176,10 @@ export async function getOpenAiCompatibleUsage(
       endpoint.url,
       {
         method: endpoint.method ?? "GET",
-        headers: buildAuthHeaders(endpoint, apiKey),
+        headers: applyCompatibleUserAgent(
+          buildAuthHeaders(endpoint, apiKey),
+          providerSpecificData?.customHeaders
+        ),
         signal: AbortSignal.timeout(QUOTA_ENDPOINT_TIMEOUT_MS),
         // A redirect is never followed, so it cannot carry the API key to another host.
         redirect: "manual",

@@ -23,6 +23,10 @@ import { kieExecutor } from "../executors/kie.ts";
 import { mapImageSize } from "../translator/image/sizeMapper.ts";
 import { getCodexClientVersion, getCodexUserAgent } from "../config/codexClient.ts";
 import { isCodexFreePlan } from "../executors/codex/tools.ts";
+import {
+  applyCompatibleUserAgent,
+  getUserAgentHeader,
+} from "../services/compatibleProviderHeaders.ts";
 import { sleep } from "../utils/sleep.ts";
 import { clampPollIntervalMs, clampPollTimeoutMs } from "../utils/pollBounds.ts";
 import { codexReferenceImageUrl } from "./imageGeneration/providers/codexReferences.ts";
@@ -521,6 +525,7 @@ export async function handleImageGeneration({
       credentials,
       log,
       signal,
+      clientUserAgent: getUserAgentHeader(clientHeaders),
       longJobs,
     });
   }
@@ -1401,6 +1406,7 @@ async function handleOpenAIImageGeneration({
   log,
   signal,
   longJobs,
+  clientUserAgent = null as string | null,
 }) {
   const startTime = Date.now();
 
@@ -1453,6 +1459,13 @@ async function handleOpenAIImageGeneration({
     headers["Authorization"] = `Bearer ${token}`;
   } else if (token && providerConfig.authHeader === "x-api-key") {
     headers["x-api-key"] = token;
+  }
+  if (provider.startsWith("openai-compatible-")) {
+    applyCompatibleUserAgent(
+      headers,
+      credentials?.providerSpecificData?.customHeaders,
+      clientUserAgent
+    );
   }
 
   // #8085 — keyless Pollinations image requests (the common free case) get
@@ -1559,6 +1572,7 @@ export async function handleOpenAIImageEdit({
   responseFormat,
   n = 1,
   log,
+  clientUserAgent,
 }: {
   model: string;
   provider: string;
@@ -1567,13 +1581,14 @@ export async function handleOpenAIImageEdit({
         apiKey?: string;
         accessToken?: string;
         baseUrl?: unknown;
-        providerSpecificData?: { baseUrl?: unknown } | null;
+        providerSpecificData?: { baseUrl?: unknown; customHeaders?: unknown } | null;
       }
     | null
     | undefined;
   prompt: string;
   imageBytes: Buffer;
   imageMime?: string | null;
+  clientUserAgent?: string | null;
   size?: string | null;
   responseFormat?: string | null;
   n?: number;
@@ -1622,6 +1637,13 @@ export async function handleOpenAIImageEdit({
   };
   const token = credentials?.apiKey || credentials?.accessToken;
   if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (provider.startsWith("openai-compatible-")) {
+    applyCompatibleUserAgent(
+      headers,
+      credentials?.providerSpecificData?.customHeaders,
+      clientUserAgent
+    );
+  }
 
   if (log) {
     log.info(

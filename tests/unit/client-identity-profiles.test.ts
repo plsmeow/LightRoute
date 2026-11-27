@@ -11,102 +11,17 @@ import path from "node:path";
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-client-identity-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
 
-const {
-  CLIENT_IDENTITY_PROFILES,
-  CLIENT_IDENTITY_PROFILE_OPTIONS,
-  getClientIdentityProfileHeaders,
-  isClientIdentityProfileId,
-} = await import("../../src/shared/constants/clientIdentityProfiles.ts");
-const { isForbiddenCustomHeaderName } =
-  await import("../../src/shared/constants/upstreamHeaders.ts");
-const { DEFAULT_CODEX_CLIENT_VERSION } = await import("../../src/shared/constants/codexClient.ts");
+import {
+  getProviderUserAgent,
+  readProviderUserAgentSetting,
+} from "../../src/shared/constants/providerUserAgentPresets.ts";
+import { isForbiddenCustomHeaderName } from "../../src/shared/constants/upstreamHeaders.ts";
 const { DefaultExecutor } = await import("../../open-sse/executors/default.ts");
 const core = await import("../../src/lib/db/core.ts");
 
 test.after(async () => {
   core.resetDbInstance();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
-});
-
-test("getClientIdentityProfileHeaders: default profile adds no headers", () => {
-  assert.deepEqual(getClientIdentityProfileHeaders("default"), {});
-  assert.deepEqual(getClientIdentityProfileHeaders(undefined), {});
-  assert.deepEqual(getClientIdentityProfileHeaders(null), {});
-});
-
-test("getClientIdentityProfileHeaders: unknown profile id falls back to no headers", () => {
-  assert.deepEqual(getClientIdentityProfileHeaders("not-a-real-profile"), {});
-});
-
-test("getClientIdentityProfileHeaders: known CLI profiles expose their preset headers", () => {
-  const claudeCli = getClientIdentityProfileHeaders("claude-cli");
-  assert.equal(claudeCli["User-Agent"], "claude-cli/2.1.280 (external, cli)");
-  assert.equal(claudeCli["X-App"], "cli");
-
-  const codexCli = getClientIdentityProfileHeaders("codex-cli");
-  assert.equal(codexCli["User-Agent"], `codex_cli_rs/${DEFAULT_CODEX_CLIENT_VERSION}`);
-  assert.equal(codexCli.originator, "codex_cli_rs");
-
-  const geminiCli = getClientIdentityProfileHeaders("gemini-cli");
-  assert.equal(geminiCli["User-Agent"], "GeminiCLI/0.1.0 (linux; x64)");
-});
-
-test("getClientIdentityProfileHeaders: returns a fresh mutable copy (catalog stays frozen)", () => {
-  const headers = getClientIdentityProfileHeaders("claude-cli");
-  headers["User-Agent"] = "tampered";
-  assert.equal(
-    CLIENT_IDENTITY_PROFILES["claude-cli"].headers["User-Agent"],
-    "claude-cli/2.1.280 (external, cli)"
-  );
-});
-
-test("isClientIdentityProfileId / CLIENT_IDENTITY_PROFILE_OPTIONS stay in sync with the catalog", () => {
-  for (const id of Object.keys(CLIENT_IDENTITY_PROFILES)) {
-    assert.equal(isClientIdentityProfileId(id), true);
-  }
-  assert.equal(isClientIdentityProfileId("bogus"), false);
-
-  const optionValues = CLIENT_IDENTITY_PROFILE_OPTIONS.map((o) => o.value);
-  assert.deepEqual(optionValues, Object.keys(CLIENT_IDENTITY_PROFILES));
-  assert.equal(CLIENT_IDENTITY_PROFILE_OPTIONS[0].value, "default");
-});
-
-test("a selected profile's headers land in providerSpecificData.customHeaders", () => {
-  // This is exactly what the compatible-provider modal does when an operator
-  // picks a profile from the <Select>: merge the preset onto the existing
-  // customHeaders record before persisting the node/connection.
-  const profileHeaders = getClientIdentityProfileHeaders("codex-cli");
-  const providerSpecificData = {
-    baseUrl: "https://proxy.example.com/v1",
-    customHeaders: { ...profileHeaders, "X-Operator-Set": "keep-me" },
-  };
-
-  assert.equal(
-    providerSpecificData.customHeaders["User-Agent"],
-    `codex_cli_rs/${DEFAULT_CODEX_CLIENT_VERSION}`
-  );
-  assert.equal(providerSpecificData.customHeaders.originator, "codex_cli_rs");
-  assert.equal(providerSpecificData.customHeaders["X-Operator-Set"], "keep-me");
-});
-
-test("profile headers merged into customHeaders survive applyCustomHeaders sanitization via DefaultExecutor", () => {
-  const executor = new DefaultExecutor("openai-compatible-test");
-  const profileHeaders = getClientIdentityProfileHeaders("claude-cli");
-
-  const headers = executor.buildHeaders(
-    {
-      apiKey: "test-key",
-      providerSpecificData: {
-        baseUrl: "https://proxy.example.com/v1",
-        customHeaders: profileHeaders,
-      },
-    },
-    true
-  ) as Record<string, string>;
-
-  assert.equal(headers["User-Agent"], "claude-cli/2.1.280 (external, cli)");
-  assert.equal(headers["X-App"], "cli");
-  assert.equal(headers["Authorization"], "Bearer test-key");
 });
 
 test("a malicious profile-shaped header set has its auth/cookie entries dropped by applyCustomHeaders", () => {
@@ -144,7 +59,7 @@ test("a malicious profile-shaped header set has its auth/cookie entries dropped 
   assert.equal(headers["cookie"], undefined);
 });
 
-test("DefaultExecutor.execute sends the selected profile's headers for a compatible-node connection", async () => {
+test("a provider preset overrides the incoming User-Agent without adding other identity headers", async () => {
   const executor = new DefaultExecutor("openai-compatible-test");
   const originalFetch = globalThis.fetch;
   let capturedHeaders: Record<string, string> = {};
@@ -162,16 +77,24 @@ test("DefaultExecutor.execute sends the selected profile's headers for a compati
       model: "gpt-4.1",
       body: { messages: [{ role: "user", content: "hi" }] },
       stream: false,
+      clientHeaders: { "user-agent": "client/1.0" },
       credentials: {
         apiKey: "real-key",
         providerSpecificData: {
           baseUrl: "https://test.proxy.com/v1",
-          customHeaders: getClientIdentityProfileHeaders("gemini-cli"),
+          customHeaders: {
+            "User-Agent": getProviderUserAgent({
+              ...readProviderUserAgentSetting(),
+              enabled: true,
+              preset: "omp",
+            }),
+          },
         },
       },
     });
 
-    assert.equal(capturedHeaders["User-Agent"], "GeminiCLI/0.1.0 (linux; x64)");
+    assert.equal(capturedHeaders["User-Agent"], "omp/19.2.1");
+    assert.equal(capturedHeaders.originator, undefined);
     assert.equal(capturedHeaders["Authorization"], "Bearer real-key");
   } finally {
     globalThis.fetch = originalFetch;

@@ -24,7 +24,6 @@ type FormData = QuotaScrapingFieldValues &
     ccCompatibleSummarizeThinking: boolean;
     commandCodeZdrEnabled?: boolean;
     consoleApiKey: string;
-    customUserAgent: string;
     huggingfaceBillTo: string;
     cx: string;
     excludedModels: string;
@@ -92,7 +91,6 @@ export function buildAddProviderSpecificData(options: {
     isCcCompatible,
   } = options;
   const data: ProviderSpecificData = {};
-  if (formData.customUserAgent.trim()) data.customUserAgent = formData.customUserAgent.trim();
   openRouterPreset.applyTo(data);
   if (formData.routingTags.trim()) data.tags = parseRoutingTagsInput(formData.routingTags);
   if (formData.excludedModels.trim()) {
@@ -175,7 +173,6 @@ export function assignEditApiKeyProviderSpecificData(options: {
     tag: o.formData.tag.trim() || undefined,
     tags: parseRoutingTagsInput(o.formData.routingTags),
     excludedModels: parseExcludedModelsInput(o.formData.excludedModels),
-    customUserAgent: o.formData.customUserAgent.trim(),
     ...o.openRouterPreset.getPatch(),
     ...(o.formData.passthroughModels ? { passthroughModels: true } : {}),
   });

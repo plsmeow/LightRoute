@@ -1,9 +1,4 @@
-import {
-  isForbiddenCustomHeaderName,
-  isForbiddenUpstreamHeaderName,
-} from "@/shared/constants/upstreamHeaders";
-
-export { isForbiddenUpstreamHeaderName };
+import { isForbiddenCustomHeaderName } from "@/shared/constants/upstreamHeaders";
 
 const asHeaderObject = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value)
@@ -54,4 +49,31 @@ export function applyCustomHeaders(
     if (/[\r\n\0]/.test(name) || /[\r\n]/.test(value)) continue;
     assignHeaderCaseInsensitive(headers, name, value);
   }
+}
+
+export function getUserAgentHeader(
+  headers?: Headers | Record<string, unknown> | null
+): string | null {
+  if (!headers) return null;
+  if (headers instanceof Headers) return headers.get("user-agent");
+  for (const name in headers) {
+    const value = headers[name];
+    if (name.toLowerCase() === "user-agent" && typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+export function applyCompatibleUserAgent(
+  headers: Record<string, string>,
+  customHeaders?: unknown,
+  clientUserAgent?: string | null
+): Record<string, string> {
+  const configured = getUserAgentHeader(parseCustomHeaders(customHeaders));
+  const userAgent = configured || clientUserAgent;
+  if (userAgent && /^[\t\x20-\x7e\x80-\xff]+$/.test(userAgent)) {
+    assignHeaderCaseInsensitive(headers, "User-Agent", userAgent);
+  }
+  return headers;
 }

@@ -22,6 +22,10 @@ import { stripStaleEncodingHeaders } from "../utils/upstreamResponseHeaders.ts";
 import { sanitizeErrorMessage } from "../utils/error.ts";
 import { stripTrailingSlashes } from "../utils/urlSanitize.ts";
 import { FETCH_TIMEOUT_MS } from "../config/constants.ts";
+import {
+  applyCompatibleUserAgent,
+  getUserAgentHeader,
+} from "../services/compatibleProviderHeaders.ts";
 import { fetchRemoteImage } from "../utils/remoteMediaFetch.ts";
 import {
   hasStructuredEmbeddingInput,
@@ -430,6 +434,13 @@ function buildAuth(
     headers.Authorization = `Bearer ${token}`;
   } else if (token && runtime.providerConfig.authHeader === "x-api-key") {
     headers["x-api-key"] = token;
+  }
+  if (runtime.providerConfig.compatibleNode) {
+    applyCompatibleUserAgent(
+      headers,
+      runtime.providerConfig.compatibleNode.customHeaders,
+      getUserAgentHeader(runtime.clientRawRequest?.headers)
+    );
   }
   return { headers, token };
 }

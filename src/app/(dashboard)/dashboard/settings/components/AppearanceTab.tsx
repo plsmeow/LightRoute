@@ -40,6 +40,7 @@ export default function AppearanceTab() {
   } | null>(null);
   const showQuickStartOnHome = settings.showQuickStartOnHome !== false;
   const showProviderTopologyOnHome = settings.showProviderTopologyOnHome !== false;
+  const showUnpricedUsageBannerOnHome = settings.showUnpricedUsageBannerOnHome !== false;
   const autoRefreshProviderQuota = settings.autoRefreshProviderQuota === true;
   const autoRefreshProviderQuotaInterval = Number.isFinite(
     settings.autoRefreshProviderQuotaInterval
@@ -257,6 +258,28 @@ export default function AppearanceTab() {
                   ariaLabel={getSettingsLabel("homeProviderTopology", "Provider Topology")}
                   onChange={async (checked) => {
                     await updateSetting("showProviderTopologyOnHome", checked);
+                  }}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="flex items-start justify-between gap-4 px-4 py-3">
+                <div>
+                  <p className="font-medium">
+                    {getSettingsLabel("homeUnpricedUsageBanner", "Unpriced usage warning")}
+                  </p>
+                  <p className="text-sm text-text-muted">
+                    {getSettingsLabel(
+                      "homeUnpricedUsageBannerDesc",
+                      "Show a notice when recently used models have no configured price and per-key USD limits cannot account for their spend."
+                    )}
+                  </p>
+                </div>
+                <Toggle
+                  checked={showUnpricedUsageBannerOnHome}
+                  ariaLabel={getSettingsLabel("homeUnpricedUsageBanner", "Unpriced usage warning")}
+                  onChange={async (checked) => {
+                    await updateSetting("showUnpricedUsageBannerOnHome", checked);
                   }}
                   disabled={loading}
                 />

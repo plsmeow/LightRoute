@@ -194,8 +194,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       // #2166: explicit null (not omission) so an empty submission clears a
       // previously stored custom icon.
       iconUrl: iconUrl?.trim() || null,
-      customHeaders: customHeaders || null,
-      customUserAgent: customUserAgent || null,
+      customHeaders,
+      customUserAgent,
       dailyQuotaResetTimezone: dailyQuotaResetTimezone?.trim() || null,
       dailyQuotaResetHour:
         dailyQuotaResetHour === 0 || dailyQuotaResetHour != null ? dailyQuotaResetHour : null,

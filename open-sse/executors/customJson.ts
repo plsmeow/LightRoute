@@ -16,7 +16,11 @@
  */
 import { randomUUID } from "node:crypto";
 import type { ExecuteInput, ExecutorExecuteResult } from "./base.ts";
-import { applyCustomHeaders } from "./default/customHeaders.ts";
+import {
+  applyCompatibleUserAgent,
+  applyCustomHeaders,
+  getUserAgentHeader,
+} from "../services/compatibleProviderHeaders.ts";
 import {
   CustomJsonError,
   type CustomJsonConfig,
@@ -108,6 +112,7 @@ function prepareRequest(input: ExecuteInput, providerData: JsonRecord, endpoint:
   assertCustomJsonKeyTransport(config, endpoint);
   const built = buildCustomJsonHeaders(config, input.credentials?.apiKey);
   const headers: Record<string, string> = { ...built.base };
+  applyCompatibleUserAgent(headers, undefined, getUserAgentHeader(input.clientHeaders));
   applyCustomHeaders(headers, providerData.customHeaders);
   const authNames = new Set<string>();
   for (const [name, value] of Object.entries(built.auth)) {

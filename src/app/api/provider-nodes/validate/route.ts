@@ -13,6 +13,12 @@ import { isCcCompatibleProviderEnabled } from "@/shared/utils/featureFlags";
 import { providerNodeValidateSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { probeCustomJsonEndpoint, resolveCustomJsonNodeConfig } from "../customJsonNode";
+import { applyCustomHeaders } from "@omniroute/open-sse/services/compatibleProviderHeaders.ts";
+
+function buildProbeHeaders(headers: Record<string, string>, customHeaders: unknown) {
+  applyCustomHeaders(headers, customHeaders);
+  return headers;
+}
 
 // Matches a base URL whose host is localhost / 127.0.0.1 (with an optional port).
 const LOCALHOST_BASE_URL_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(?:[/?#]|$)/i;
@@ -117,22 +123,27 @@ async function probeChatFallback({
   apiKey,
   modelId,
   extraHeaders = {},
+  customHeaders,
 }: {
   baseUrl: string;
   apiKey: string;
   modelId: string;
   extraHeaders?: Record<string, string>;
+  customHeaders?: unknown;
 }) {
   const chatUrl = `${baseUrl.replace(/\/$/, "")}/chat/completions`;
   return safeOutboundFetch(chatUrl, {
     ...SAFE_OUTBOUND_FETCH_PRESETS.validationRead,
     guard: getProviderValidationGuard(),
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      ...extraHeaders,
-    },
+    headers: buildProbeHeaders(
+      {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        ...extraHeaders,
+      },
+      customHeaders
+    ),
     body: JSON.stringify({
       model: modelId,
       messages: [{ role: "user", content: "ping" }],
@@ -145,10 +156,12 @@ async function probeAudioTranscriptionFallback({
   baseUrl,
   apiKey,
   modelId,
+  customHeaders,
 }: {
   baseUrl: string;
   apiKey: string;
   modelId: string;
+  customHeaders?: unknown;
 }) {
   const formData = new FormData();
   formData.set("model", modelId);
@@ -158,7 +171,7 @@ async function probeAudioTranscriptionFallback({
     ...SAFE_OUTBOUND_FETCH_PRESETS.validationRead,
     guard: getProviderValidationGuard(),
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: buildProbeHeaders({ Authorization: `Bearer ${apiKey}` }, customHeaders),
     body: formData,
   });
 }
@@ -202,6 +215,7 @@ export async function POST(request) {
     const { baseUrl, apiKey, type, compatMode, apiType, chatPath, modelsPath, modelId } =
       validation.data;
     const trimmedModelId = typeof modelId === "string" ? modelId.trim() : "";
+    const { customHeaders } = validation.data;
 
     // Custom JSON API node: an explicit test sends ONE real business request.
     if (apiType === "custom-json" && type !== "anthropic-compatible") {
@@ -212,7 +226,7 @@ export async function POST(request) {
           baseUrl,
           apiKey,
           config: resolved.config,
-          customHeaders: validation.data.customHeaders,
+          customHeaders,
           modelId: trimmedModelId,
         })
       );
@@ -233,6 +247,7 @@ export async function POST(request) {
           providerSpecificData: {
             baseUrl: sanitizeClaudeCodeCompatibleBaseUrl(baseUrl),
             chatPath: chatPath || undefined,
+            customHeaders,
           },
         });
 
@@ -254,11 +269,14 @@ export async function POST(request) {
         ...SAFE_OUTBOUND_FETCH_PRESETS.validationRead,
         guard: getProviderValidationGuard(),
         method: "GET",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          Authorization: `Bearer ${apiKey}`, // Add Bearer token for hybrid proxies
-        },
+        headers: buildProbeHeaders(
+          {
+            "x-api-key": apiKey ?? "",
+            "anthropic-version": "2023-06-01",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          customHeaders
+        ),
       });
 
       if (res.ok) return NextResponse.json({ valid: true, error: null });
@@ -274,6 +292,7 @@ export async function POST(request) {
           apiKey: apiKey ?? "",
           modelId: trimmedModelId,
           extraHeaders: { "x-api-key": apiKey ?? "", "anthropic-version": "2023-06-01" },
+          customHeaders,
         });
         if (chatRes.ok) return NextResponse.json({ valid: true, error: null, method: "chat" });
         return NextResponse.json({
@@ -300,6 +319,7 @@ export async function POST(request) {
         baseUrl: openAiBase,
         apiKey: apiKey ?? "",
         modelId: trimmedModelId,
+        customHeaders,
       });
       if (transcriptionRes.ok) {
         return NextResponse.json({ valid: true, error: null, method: "audio-transcriptions" });
@@ -315,7 +335,7 @@ export async function POST(request) {
     const res = await safeOutboundFetch(modelsUrl, {
       ...SAFE_OUTBOUND_FETCH_PRESETS.validationRead,
       guard: getProviderValidationGuard(),
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: buildProbeHeaders({ Authorization: `Bearer ${apiKey}` }, customHeaders),
     });
 
     if (res.ok) return NextResponse.json({ valid: true, error: null });
@@ -327,6 +347,7 @@ export async function POST(request) {
         baseUrl: openAiBase,
         apiKey: apiKey ?? "",
         modelId: trimmedModelId,
+        customHeaders,
       });
       if (chatRes.ok) return NextResponse.json({ valid: true, error: null, method: "chat" });
       return NextResponse.json({

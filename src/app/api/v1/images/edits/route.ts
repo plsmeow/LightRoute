@@ -490,6 +490,7 @@ async function dispatchImageEditTarget(
     responseFormat,
     n: 1,
     log,
+    clientUserAgent: request.headers.get("user-agent"),
   })) as ImageComboDispatchResult;
 }
 
@@ -1207,6 +1208,7 @@ async function postHandler(request: Request, _context?: unknown) {
         responseFormat,
         n: 1,
         log,
+        clientUserAgent: request.headers.get("user-agent"),
       })
   );
 

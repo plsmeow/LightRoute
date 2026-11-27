@@ -408,6 +408,13 @@ function addCustomJsonNodeIssues(
   }
 }
 
+const providerNodeUserAgentSchema = z
+  .string()
+  .trim()
+  .max(1000)
+  .regex(/^[\x20-\x7e\x80-\xff]*$/, "Invalid User-Agent header")
+  .optional();
+
 export const createProviderNodeSchema = z
   .object({
     // #6874: name/prefix are required in general, but a `preset` (e.g.
@@ -441,7 +448,7 @@ export const createProviderNodeSchema = z
     // isValidProviderIconUrl (2000 chars for http(s), 256 KiB for data:image).
     iconUrl: providerNodeIconUrlSchema,
     customHeaders: customHeadersSchema,
-    customUserAgent: z.string().trim().max(1000).optional().or(z.literal("")),
+    customUserAgent: providerNodeUserAgentSchema,
     // Custom JSON API node config (apiType "custom-json"): request template + response path.
     customJson: customJsonConfigSchema.optional(),
     dailyQuotaResetTimezone: dailyQuotaResetTimezoneSchema,
@@ -544,7 +551,7 @@ export const updateProviderNodeSchema = z
     // clears a previously stored custom icon.
     iconUrl: providerNodeIconUrlSchema,
     customHeaders: customHeadersSchema,
-    customUserAgent: z.string().trim().max(1000).optional().or(z.literal("")),
+    customUserAgent: providerNodeUserAgentSchema,
     customJson: customJsonConfigSchema.optional(),
     dailyQuotaResetTimezone: dailyQuotaResetTimezoneSchema,
     dailyQuotaResetHour: dailyQuotaResetHourSchema,
@@ -842,7 +849,6 @@ export const validateProviderApiKeySchema = z
     provider: z.string().trim().min(1, "Provider and API key required"),
     apiKey: z.string().trim().optional(),
     validationModelId: z.string().trim().optional(),
-    customUserAgent: z.string().trim().max(500).optional(),
     baseUrl: z.string().trim().url().optional(),
     region: z.string().trim().max(64).optional(),
     accessKeyId: z.string().trim().max(500).optional(),

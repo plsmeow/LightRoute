@@ -30,3 +30,16 @@ export function isHiddenForModality(
   if (scoped !== undefined) return Boolean(scoped);
   return Boolean(flags?.isHidden);
 }
+
+export function getModelVisibilityModality(endpoints: readonly string[] = []): string {
+  if (endpoints.includes("chat") || endpoints.includes("responses") || endpoints.length === 0)
+    return "chat";
+  const endpoint = endpoints[0];
+  const modalities: Record<string, string> = {
+    "images-generations": "images",
+    video: "videos",
+    "audio-speech": "audio",
+    "audio-transcriptions": "audio",
+  };
+  return modalities[endpoint] || endpoint;
+}

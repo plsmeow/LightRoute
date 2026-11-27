@@ -1,7 +1,7 @@
 // tests/unit/connection-level-upstream-headers.test.ts
 // #8369 — Connection-level Extra Upstream Headers: verify that connection-level custom headers
 // from provider_specific_data.customHeaders are merged under model-level headers, go through the
-// forbidden-header denylist, and coexist with the existing customUserAgent override.
+// forbidden-header denylist.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildUpstreamHeadersForExecute } from "../../open-sse/handlers/chatCore/upstreamExecuteHeaders.ts";
@@ -14,7 +14,6 @@ const base = {
   model: "some-model",
   resolvedModel: "some-model",
   sourceFormat: "openai",
-  connectionCustomUserAgent: "",
   connectionCustomHeaders: undefined,
   settings: {},
 };
@@ -97,16 +96,6 @@ test("forbidden header names are silently dropped from connection headers", () =
   assert.equal(h["connection"], undefined);
   assert.equal(h["proxy-connection"], undefined);
   assert.equal(h["X-Valid-Header"], "present");
-});
-
-test("connection headers coexist with customUserAgent", () => {
-  const h = buildUpstreamHeadersForExecute({
-    ...base,
-    connectionCustomUserAgent: "MyAgent/2.0",
-    connectionCustomHeaders: { "X-Custom": "custom-value" },
-  });
-  assert.equal(h["User-Agent"], "MyAgent/2.0");
-  assert.equal(h["X-Custom"], "custom-value");
 });
 
 test("undefined connectionCustomHeaders produces no extra headers", () => {

@@ -86,6 +86,7 @@ async function postHandler(request, context) {
         {
           allowedConnections,
           isTargetAllowed: createComboTargetKeyGate(policy, body.model),
+          clientUserAgent: request.headers.get("user-agent"),
         },
         policy.apiKeyInfo
       );
@@ -142,6 +143,7 @@ async function postHandler(request, context) {
     credentials,
     resolvedProvider: providerConfig,
     resolvedModel,
+    clientUserAgent: request.headers.get("user-agent"),
   });
 
   const connectionId = (credentials as { connectionId?: string } | null)?.connectionId || undefined;

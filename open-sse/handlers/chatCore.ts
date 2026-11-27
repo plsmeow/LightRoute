@@ -1092,10 +1092,9 @@ async function handleChatCoreInner({
   // Primary path: merge client model id + alias target so config on either key applies; resolved
   // id wins on same header name. T5 family fallback uses only (nextModel, resolveModelAlias(next))
   // so A-model headers are not sent to B — see buildUpstreamHeadersForExecute.
-  // Custom User-Agent + #8369 custom headers: extracted to chatCore/connectionUpstreamOverrides.ts
-  // (chatCore slice 2).
-  const { connectionCustomUserAgent, connectionCustomHeaders } =
-    resolveConnectionUpstreamOverrides(credentials?.providerSpecificData);
+  const { connectionCustomHeaders } = resolveConnectionUpstreamOverrides(
+    credentials?.providerSpecificData
+  );
 
   // Upstream extra-header building extracted to chatCore/upstreamExecuteHeaders.ts (#3501); bind the
   // per-request inputs once and delegate so the existing call sites stay byte-identical.
@@ -1107,7 +1106,6 @@ async function handleChatCoreInner({
       model,
       resolvedModel,
       sourceFormat,
-      connectionCustomUserAgent,
       connectionCustomHeaders,
       settings,
     });

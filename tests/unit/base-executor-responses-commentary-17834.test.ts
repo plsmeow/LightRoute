@@ -50,3 +50,16 @@ test("unstamped Responses bodies still drop assistant commentary history", () =>
     false
   );
 });
+
+test("custom Responses provider retains its own URL and bearer credentials", () => {
+  const executor = new DefaultExecutor("openai-compatible-responses-my-gateway");
+  const customCredentials = {
+    apiKey: "fixture-custom-key",
+    providerSpecificData: { baseUrl: "https://gw.example/v1", apiType: "responses" },
+  };
+  assert.equal(
+    executor.buildUrl("m", true, 0, customCredentials),
+    "https://gw.example/v1/responses"
+  );
+  assert.equal(executor.buildHeaders(customCredentials).Authorization, "Bearer fixture-custom-key");
+});

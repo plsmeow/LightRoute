@@ -20,7 +20,6 @@ const BASE_FORM_DATA = {
   ccCompatibleRedactThinking: false,
   ccCompatibleSummarizeThinking: false,
   consoleApiKey: "",
-  customUserAgent: "",
   cx: "",
   excludedModels: "",
   glmOrganizationId: "",

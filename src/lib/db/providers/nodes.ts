@@ -27,7 +27,9 @@ function withParsedCustomHeaders(node: JsonRecord, storedJson: string | null): J
   const result: JsonRecord = { ...node };
   const headers = parseStoredJson(storedJson) as Record<string, string> | null;
   result.customHeaders = headers;
-  result.customUserAgent = headers?.["User-Agent"] || headers?.["user-agent"] || "";
+  result.customUserAgent = headers
+    ? (Object.entries(headers).find(([name]) => name.toLowerCase() === "user-agent")?.[1] ?? "")
+    : "";
   delete result.customHeadersJson;
   // Custom JSON API node config (#4929 port): exposed parsed, like rowToCamel does.
   result.customJsonConfig = parseStoredJson(
@@ -138,14 +140,15 @@ export async function createProviderNode(data: JsonRecord) {
   const db = getDbInstance() as unknown as DbLike;
   const now = new Date().toISOString();
 
-  const headers: Record<string, string> = data.customHeaders ? { ...(data.customHeaders as Record<string, string>) } : {};
+  const headers: Record<string, string> = data.customHeaders
+    ? { ...(data.customHeaders as Record<string, string>) }
+    : {};
   if (typeof data.customUserAgent === "string") {
-    if (data.customUserAgent.trim()) {
-      headers["User-Agent"] = data.customUserAgent.trim();
-    } else {
-      delete headers["User-Agent"];
-      delete headers["user-agent"];
+    for (const name in headers) {
+      if (name.toLowerCase() === "user-agent") delete headers[name];
     }
+    const userAgent = data.customUserAgent.trim();
+    if (userAgent) headers["User-Agent"] = userAgent;
   }
   const customHeadersJson = Object.keys(headers).length > 0 ? JSON.stringify(headers) : null;
   const node = {
@@ -200,21 +203,28 @@ export async function updateProviderNode(id: string, data: JsonRecord) {
 
   let headersObj: Record<string, string> = {};
   if (data.customHeaders !== undefined) {
-    headersObj = (data.customHeaders as Record<string, string>) ? { ...(data.customHeaders as Record<string, string>) } : {};
+    headersObj = (data.customHeaders as Record<string, string>)
+      ? { ...(data.customHeaders as Record<string, string>) }
+      : {};
   } else {
     const existingJson = (existing as JsonRecord).custom_headers_json;
-    headersObj = (typeof existingJson === "string" ? parseStoredJson(existingJson) : {}) as Record<string, string> || {};
+    headersObj =
+      ((typeof existingJson === "string" ? parseStoredJson(existingJson) : {}) as Record<
+        string,
+        string
+      >) || {};
   }
   if (typeof data.customUserAgent === "string") {
-    if (data.customUserAgent.trim()) {
-      headersObj["User-Agent"] = data.customUserAgent.trim();
-    } else {
-      delete headersObj["User-Agent"];
-      delete headersObj["user-agent"];
+    for (const name in headersObj) {
+      if (name.toLowerCase() === "user-agent") delete headersObj[name];
     }
-    merged["customHeadersJson"] = Object.keys(headersObj).length > 0 ? JSON.stringify(headersObj) : null;
+    const userAgent = data.customUserAgent.trim();
+    if (userAgent) headersObj["User-Agent"] = userAgent;
+    merged["customHeadersJson"] =
+      Object.keys(headersObj).length > 0 ? JSON.stringify(headersObj) : null;
   } else if (data.customHeaders !== undefined) {
-    merged["customHeadersJson"] = Object.keys(headersObj).length > 0 ? JSON.stringify(headersObj) : null;
+    merged["customHeadersJson"] =
+      Object.keys(headersObj).length > 0 ? JSON.stringify(headersObj) : null;
   } else {
     const existingJson = (existing as JsonRecord).custom_headers_json;
     merged["customHeadersJson"] = typeof existingJson === "string" ? existingJson : null;

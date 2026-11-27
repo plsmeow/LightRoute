@@ -203,7 +203,13 @@ export async function POST(request) {
           baseUrl: getProviderBaseUrl(connection.providerSpecificData),
           providerSpecificData: connection.providerSpecificData,
         });
-        const headers = buildProviderHeaders(provider, credentials, true, actualBody);
+        const headers = buildProviderHeaders(
+          provider,
+          credentials,
+          true,
+          actualBody,
+          request.headers
+        );
 
         result = {
           timestamp: new Date().toISOString(),

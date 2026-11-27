@@ -93,7 +93,7 @@ export async function POST(request) {
       baseUrl: getProviderBaseUrl(connection.providerSpecificData),
       providerSpecificData: connection.providerSpecificData,
     });
-    const headers = buildProviderHeaders(provider, credentials, true, body);
+    const headers = buildProviderHeaders(provider, credentials, true, body, request.headers);
 
     // Send request to provider
     const response = await fetch(url, {

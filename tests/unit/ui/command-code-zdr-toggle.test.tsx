@@ -177,7 +177,7 @@ describe("EditConnectionModal — Command Code ZDR toggle", () => {
         provider: "command-code",
         name: "CC",
         authType: "apikey",
-        providerSpecificData: { zdrEnabled: true, customUserAgent: "ua/1.0", someFlag: "keep" },
+        providerSpecificData: { zdrEnabled: true, someFlag: "keep" },
       },
       onSave,
     });
@@ -187,7 +187,6 @@ describe("EditConnectionModal — Command Code ZDR toggle", () => {
     await waitFor(() => onSave.mock.calls.length > 0);
     const psd = onSave.mock.calls[0][0].providerSpecificData;
     expect(psd.zdrEnabled).toBe(false);
-    expect(psd.customUserAgent).toBe("ua/1.0");
     expect(psd.someFlag).toBe("keep");
   });
 

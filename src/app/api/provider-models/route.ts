@@ -38,6 +38,7 @@ import {
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { getRegisteredEndpointAdapterStatuses } from "@/lib/providerModels/endpointAdapterAvailability";
 import { isHiddenForModality } from "@/shared/utils/modelVisibility";
+import { getProviderSpecialtyModels } from "@/lib/providerModels/providerSpecialtyModels";
 export const dynamic = "force-dynamic";
 import { providerModelMutationSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
@@ -90,7 +91,7 @@ async function setHiddenByStoredIds(
   for (const requestedId of modelIds) {
     const modelId = await normalizeNodeModelId(provider, requestedId);
     normalizedIds.push(modelId);
-    const updatedModel = await updateCustomModel(provider, modelId, { isHidden });
+    const updatedModel = await updateCustomModel(provider, modelId, { isHidden, modality });
     if (!updatedModel) {
       mergeModelCompatOverride(provider, modelId, { isHidden, modality });
     }
@@ -154,6 +155,13 @@ export async function GET(request) {
               : { ...model, ...outputFields };
           })
         : models;
+    const visibleModels =
+      provider && Array.isArray(modelsWithContextOverride)
+        ? modelsWithContextOverride.map((model: Record<string, unknown>) => ({
+            ...model,
+            isHidden: isHiddenForModality(model, "chat"),
+          }))
+        : modelsWithContextOverride;
 
     // #9203: surface the unified hidden-model map (customModels.isHidden +
     // modelCompatOverrides.isHidden) so the client can filter every model source
@@ -180,8 +188,11 @@ export async function GET(request) {
           }))
       : [];
 
+    const specialtyModels =
+      provider && Array.isArray(models) ? await getProviderSpecialtyModels(provider, models) : [];
+
     return Response.json({
-      models: modelsWithContextOverride,
+      models: visibleModels,
       modelCompatOverrides: modelCompatOverrides.map((override) => ({
         ...override,
         isHidden: isHiddenForModality(override, "chat"),
@@ -190,6 +201,7 @@ export async function GET(request) {
       modelOutputOverrides,
       endpointAdapters: provider ? getRegisteredEndpointAdapterStatuses(provider) : {},
       hiddenModelsByProvider,
+      specialtyModels,
     });
   } catch {
     return Response.json(
@@ -602,19 +614,21 @@ export async function PATCH(request) {
 
     const aliasTargetIds = await setHiddenByStoredIds(provider, modelIds, body.isHidden, modality);
     const aliasChanges =
-      body.isHidden === true
-        ? {
-            removed: await deleteManagedAvailableModelAliases(provider, aliasTargetIds),
-            assigned: [],
-          }
-        : {
-            removed: [],
-            assigned: (
-              await syncManagedAvailableModelAliases(provider, aliasTargetIds, {
-                pruneMissing: false,
-              })
-            ).assignedAliases,
-          };
+      modality && modality !== "chat"
+        ? { removed: [], assigned: [] }
+        : body.isHidden === true
+          ? {
+              removed: await deleteManagedAvailableModelAliases(provider, aliasTargetIds),
+              assigned: [],
+            }
+          : {
+              removed: [],
+              assigned: (
+                await syncManagedAvailableModelAliases(provider, aliasTargetIds, {
+                  pruneMissing: false,
+                })
+              ).assignedAliases,
+            };
 
     return Response.json({
       ok: true,

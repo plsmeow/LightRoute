@@ -40,6 +40,13 @@ type ProviderModelsResponse = {
   models?: Record<string, Array<{ id: string; isHidden?: boolean }>> | Array<{ id: string }>;
   modelCompatOverrides?: Array<{ id: string; isHidden?: boolean }>;
   hiddenModelsByProvider?: Record<string, string[]>;
+  specialtyModels?: Array<{
+    id: string;
+    modelId: string;
+    fullModel: string;
+    type: string;
+    isHidden: boolean;
+  }>;
 };
 
 async function getBody(response: Response): Promise<ProviderModelsResponse> {
@@ -293,4 +300,68 @@ test("provider-models DELETE all=true clears modelCompatOverrides as well as cus
   const body = await getBody(getResponse);
   assert.deepEqual(body.modelCompatOverrides, []);
   assert.deepEqual(body.hiddenModelsByProvider, {});
+});
+
+test("provider image catalog includes dedicated Codex engines and preserves callable IDs", async () => {
+  const response = await providerModelsRoute.GET(
+    buildGetRequest("http://localhost/api/provider-models?provider=codex")
+  );
+  const body = await getBody(response);
+  assert.equal(response.status, 200);
+  assert.ok(body.specialtyModels?.some((model) => model.fullModel === "codex/gpt-image-2.5-flare"));
+  const hosted = body.specialtyModels?.find((model) => model.id === "gpt-5.6-sol-image");
+  assert.equal(hosted?.modelId, "gpt-5.6-sol");
+});
+
+test("image visibility persists independently from chat visibility for custom and registry models", async () => {
+  await modelsDb.addCustomModel("codex", "gpt-5.6-sol");
+  const ids = ["gpt-5.6-sol", "gpt-image-2.5-flare"];
+  const url = "http://localhost/api/provider-models?provider=codex";
+  const hiddenResponse = await providerModelsRoute.PATCH(
+    buildPatchRequest(url, { modelIds: ids, isHidden: true, modality: "images" })
+  );
+  assert.equal(hiddenResponse.status, 200);
+  for (const id of ids) {
+    assert.equal(modelsDb.getModelIsHidden("codex", id, "images"), true);
+    assert.equal(modelsDb.getModelIsHidden("codex", id, "chat"), false);
+    assert.equal(modelsDb.getHiddenModelsByProvider("images").get("codex")?.has(id), true);
+  }
+  let body = await getBody(await providerModelsRoute.GET(buildGetRequest(url)));
+  assert.equal(body.specialtyModels?.find((model) => model.modelId === ids[0])?.isHidden, true);
+  assert.equal((body.models as Array<{ id: string; isHidden: boolean }>)[0].isHidden, false);
+  const restoredResponse = await providerModelsRoute.PATCH(
+    buildPatchRequest(url, { modelIds: ids, isHidden: false, modality: "images" })
+  );
+  assert.equal(restoredResponse.status, 200);
+  body = await getBody(await providerModelsRoute.GET(buildGetRequest(url)));
+  assert.equal(body.specialtyModels?.find((model) => model.modelId === ids[0])?.isHidden, false);
+  for (const id of ids) {
+    assert.equal(
+      modelsDb.getHiddenModelsByProvider("images").get("codex")?.has(id) ?? false,
+      false
+    );
+  }
+});
+
+test("provider management lists every declared specialty endpoint, including unknown future kinds", async () => {
+  await modelsDb.addCustomModel(
+    "openai",
+    "multi-purpose",
+    "Multi Purpose",
+    "manual",
+    "chat-completions",
+    ["chat", "embeddings", "images", "videos", "audio-speech", "music", "ocr", "decisions"]
+  );
+  const body = await getBody(
+    await providerModelsRoute.GET(
+      buildGetRequest("http://localhost/api/provider-models?provider=openai")
+    )
+  );
+  const types = body.specialtyModels
+    ?.filter((model) => model.modelId === "multi-purpose")
+    .map((model) => model.type);
+  assert.deepEqual(
+    new Set(types),
+    new Set(["embedding", "image", "video", "audio-speech", "music", "ocr", "decisions"])
+  );
 });

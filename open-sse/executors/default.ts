@@ -66,7 +66,11 @@ import { normalizePoolConfig, rejectStrictPool } from "./default/poolConfig.ts";
 import { isForceStreamProvider } from "./default/forceStreamBody.ts";
 import { acquireNvidiaConcurrencySlot } from "./default/nvidiaConcurrencyGate.ts";
 import { normalizeOpenAIToolCallIds } from "./default/openaiToolCallIds.ts";
-import { applyCustomHeaders } from "./default/customHeaders.ts";
+import {
+  applyCompatibleUserAgent,
+  applyCustomHeaders,
+  getUserAgentHeader,
+} from "../services/compatibleProviderHeaders.ts";
 import { executeCustomJson } from "./customJson.ts";
 import { isCustomJsonProviderData } from "../utils/customJson.ts";
 import { resolveAlibabaProviderBaseUrl } from "@/shared/constants/alibabaProviderRegions";
@@ -168,9 +172,11 @@ function normalizeNvidiaToolCallIds(body: unknown): void {
   }
 }
 
+const COMPATIBLE_PROVIDER_CONFIG = { format: "openai" };
+
 export class DefaultExecutor extends BaseExecutor {
   constructor(provider) {
-    super(provider, PROVIDERS[provider] || PROVIDERS.openai);
+    super(provider, PROVIDERS[provider] || COMPATIBLE_PROVIDER_CONFIG);
     const registryEntry = getRegistryEntry(provider);
     if (registryEntry?.poolConfig) {
       this.poolConfig = normalizePoolConfig(registryEntry.poolConfig) ?? undefined;
@@ -569,6 +575,10 @@ export class DefaultExecutor extends BaseExecutor {
           }
           // CC nodes are also anthropic-compatible-*, so honor operator custom
           // headers here (the early return skips the shared block below).
+          const isCustomNode = this.provider.startsWith("anthropic-compatible-");
+          if (isCustomNode) {
+            applyCompatibleUserAgent(ccHeaders, undefined, getUserAgentHeader(clientHeaders));
+          }
           applyCustomHeaders(ccHeaders, credentials.providerSpecificData?.customHeaders);
           return ccHeaders;
         }
@@ -634,6 +644,9 @@ export class DefaultExecutor extends BaseExecutor {
 
     if (isCompatibleProvider) {
       applyCustomHeaders(headers, credentials.providerSpecificData?.customHeaders);
+      if (!getUserAgentHeader(headers)) {
+        applyCompatibleUserAgent(headers, undefined, getUserAgentHeader(clientHeaders));
+      }
     }
 
     if (clientHeaders) {

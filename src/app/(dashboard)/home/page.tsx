@@ -6,6 +6,7 @@ import FirstRunReadinessCard from "../dashboard/FirstRunReadinessCard";
 import HomePageHeader from "./HomePageHeader";
 import HomeSystemMetricsCards from "./HomeSystemMetricsCards";
 import UnpricedUsageBanner from "../dashboard/UnpricedUsageBanner";
+import { shouldShowUnpricedUsageBannerOnHome } from "../dashboard/homeAppearance";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,9 @@ export default async function HomePage() {
       <HomePageHeader />
       {isBootstrapped && <BootstrapBanner />}
       <FirstRunReadinessCard setupComplete={Boolean(settings.setupComplete)} />
-      <UnpricedUsageBanner />
+      {shouldShowUnpricedUsageBannerOnHome(settings.showUnpricedUsageBannerOnHome) && (
+        <UnpricedUsageBanner />
+      )}
       <div className="mb-4">
         <HomeSystemMetricsCards />
       </div>

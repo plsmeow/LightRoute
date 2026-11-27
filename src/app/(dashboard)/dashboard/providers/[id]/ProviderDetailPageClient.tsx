@@ -207,6 +207,7 @@ export default function ProviderDetailPageClient() {
 
   const {
     modelMeta,
+    specialtyModels = [],
     syncedAvailableModels,
     syncedCatalogAuthoritative,
     modelAliases,
@@ -871,6 +872,7 @@ export default function ProviderDetailPageClient() {
             compatibleSupportsModelImport={compatibleSupportsModelImport}
             allowModelImport={!usesCuratedModelsOnly}
             models={models}
+            specialtyModels={specialtyModels}
             modelMeta={modelMeta}
             modelAliases={modelAliases}
             comboUsage={comboUsage}

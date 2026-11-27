@@ -69,7 +69,6 @@ test("provider onboarding builds providerSpecificData without empty fields", () 
       baseUrl: " https://gateway.example/v1 ",
       region: "",
       cx: " cx-123 ",
-      customUserAgent: "   ",
     }),
     {
       baseUrl: "https://gateway.example/v1",

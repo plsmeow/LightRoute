@@ -1,25 +1,26 @@
-/**
- * APIKEY provider catalog barrel — merges the semantic family files into one object
- * (god-file decomposition). Pure data; spread preserves every entry. Keys are now grouped
- * by provider family (was historical-accretion order); lookups are by-key so this is a
- * cosmetic-only iteration-order change (e.g. the dashboard blocked-providers grid).
- */
-import { APIKEY_PROVIDERS_GATEWAYS } from "./gateways";
-import { APIKEY_PROVIDERS_BEATAPI } from "./beatapi";
-import { APIKEY_PROVIDERS_EMPIRIOLABS } from "./empiriolabs";
-import { APIKEY_PROVIDERS_FRONTIER } from "./frontier-labs";
-import { APIKEY_PROVIDERS_INFERENCE } from "./inference-hosts";
-import { APIKEY_PROVIDERS_ENTERPRISE } from "./enterprise-cloud";
-import { APIKEY_PROVIDERS_REGIONAL } from "./regional";
-import { APIKEY_PROVIDERS_SPECIALTY } from "./specialty-media";
-
-export const APIKEY_PROVIDERS = {
-  ...APIKEY_PROVIDERS_GATEWAYS,
-  ...APIKEY_PROVIDERS_BEATAPI,
-  ...APIKEY_PROVIDERS_EMPIRIOLABS,
-  ...APIKEY_PROVIDERS_FRONTIER,
-  ...APIKEY_PROVIDERS_INFERENCE,
-  ...APIKEY_PROVIDERS_ENTERPRISE,
-  ...APIKEY_PROVIDERS_REGIONAL,
-  ...APIKEY_PROVIDERS_SPECIALTY,
+export const APIKEY_PROVIDERS: Record<string, any> = {
+  agentrouter: {
+    id: "agentrouter",
+    serviceKinds: ["llm"],
+    alias: "agentrouter",
+    name: "AgentRouter",
+    icon: "router",
+    color: "#10B981",
+    textIcon: "AR",
+    passthroughModels: true,
+    website: "https://agentrouter.org",
+    hasFree: true,
+    freeNote: "$200 free credits on signup - multi-model routing gateway",
+    apiHint: "Get $200 free credits at https://agentrouter.org/register — no credit card required.",
+  },
+  "opencode-go": {
+    id: "opencode-go",
+    serviceKinds: ["llm"],
+    alias: "opencode-go",
+    name: "OpenCode Go",
+    icon: "opencode",
+    color: "#6366f1",
+    website: "https://opencode.ai/go",
+    passthroughModels: true,
+  },
 };

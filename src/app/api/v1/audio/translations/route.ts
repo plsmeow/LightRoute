@@ -105,7 +105,8 @@ async function translateWithModel(
   startTime: number,
   apiKeyId?: string | null,
   apiKeyName?: string | null,
-  allowedConnections: string[] | null = null
+  allowedConnections: string[] | null = null,
+  clientUserAgent?: string | null
 ): Promise<Response> {
   // Translation is served by the transcription-capable nodes (Whisper-style
   // endpoints expose both), plus general chat/responses gateways. Remote hosts are
@@ -144,6 +145,7 @@ async function translateWithModel(
     credentials,
     resolvedProvider: providerConfig,
     resolvedModel,
+    clientUserAgent,
   });
 
   const connectionId = (credentials as { connectionId?: string } | null)?.connectionId || undefined;
@@ -257,7 +259,8 @@ export async function POST(request) {
               startTime,
               apiKeyId,
               apiKeyName,
-              allowedConnections
+              allowedConnections,
+              request.headers.get("user-agent")
             ),
           isModelAvailable: createComboTargetKeyGate(policy, modelStr),
           log,
@@ -278,6 +281,7 @@ export async function POST(request) {
     startTime,
     apiKeyId,
     apiKeyName,
-    allowedConnections
+    allowedConnections,
+    request.headers.get("user-agent")
   );
 }

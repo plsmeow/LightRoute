@@ -11,6 +11,11 @@ import {
 import { getClaudeCodeCompatibleRequestDefaults } from "@/lib/providers/requestDefaults";
 import { buildClinepassHeaders } from "@/shared/utils/clineAuth";
 import { usesCcWireImage } from "./ccWireImageBuiltins.ts";
+import {
+  applyCompatibleUserAgent,
+  applyCustomHeaders,
+  getUserAgentHeader,
+} from "./compatibleProviderHeaders.ts";
 
 const OPENAI_COMPATIBLE_PREFIX = "openai-compatible-";
 const OPENAI_COMPATIBLE_ID_TYPES = [
@@ -361,7 +366,13 @@ export function buildProviderUrl(
 }
 
 // Build provider headers
-export function buildProviderHeaders(provider, credentials, stream = true, body = null) {
+export function buildProviderHeaders(
+  provider,
+  credentials,
+  stream = true,
+  body = null,
+  clientHeaders?: Headers
+) {
   const config = getProviderConfig(provider);
   const entry = getRegistryEntry(provider);
   const headers = {
@@ -395,6 +406,10 @@ export function buildProviderHeaders(provider, credentials, stream = true, body 
       } else {
         ccHeaders["Authorization"] = `Bearer ${token}`;
       }
+    }
+    if (isAnthropicCompatible(provider)) {
+      applyCompatibleUserAgent(ccHeaders, undefined, getUserAgentHeader(clientHeaders));
+      applyCustomHeaders(ccHeaders, credentials?.providerSpecificData?.customHeaders);
     }
     // For CC-compatible providers returning early, ensure skills beta is conditionally applied
     // (within this block, isClaudeCodeCompatible(provider) is guaranteed true):
@@ -477,6 +492,12 @@ export function buildProviderHeaders(provider, credentials, stream = true, body 
     headers["Accept"] = "text/event-stream";
   }
 
+  if (isOpenAICompatible(provider) || isAnthropicCompatible(provider)) {
+    applyCustomHeaders(headers, credentials?.providerSpecificData?.customHeaders);
+    if (!getUserAgentHeader(headers)) {
+      applyCompatibleUserAgent(headers, undefined, getUserAgentHeader(clientHeaders));
+    }
+  }
   // For standard/compatible provider paths, ensure skills beta is conditionally applied
   maybeAppendSkillsBeta(headers, provider, body);
 

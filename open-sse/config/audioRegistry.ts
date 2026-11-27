@@ -31,6 +31,7 @@ export interface AudioProvider {
    * id already is the credential key.
    */
   credentialProviderId?: string;
+  compatibleNode?: { customHeaders?: unknown };
   alias?: string;
   baseUrl: string;
   authType: string;
@@ -807,6 +808,7 @@ export interface ProviderNodeRow {
   name: string;
   baseUrl: string;
   apiType?: string;
+  customHeaders?: unknown;
 }
 
 /**
@@ -836,6 +838,7 @@ export function buildDynamicAudioProvider(node: ProviderNodeRow, audioPath: stri
   return {
     id: node.prefix,
     ...(node.id ? { credentialProviderId: node.id } : {}),
+    compatibleNode: { customHeaders: node.customHeaders },
     baseUrl: `${baseUrl}${audioPath}`,
     authType: isLocal ? "none" : "apikey",
     authHeader: isLocal ? "none" : "bearer",

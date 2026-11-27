@@ -58,7 +58,6 @@ export async function POST(request) {
       provider,
       apiKey,
       validationModelId,
-      customUserAgent,
       baseUrl: bodyBaseUrl,
       region,
       accessKeyId,
@@ -75,9 +74,6 @@ export async function POST(request) {
     if (retirementResponse) return retirementResponse;
 
     let providerSpecificData: any = { validationModelId };
-    if (customUserAgent) {
-      providerSpecificData.customUserAgent = customUserAgent;
-    }
     if (bodyBaseUrl) {
       providerSpecificData.baseUrl = bodyBaseUrl;
     }
@@ -118,6 +114,7 @@ export async function POST(request) {
         apiType: node.apiType,
         chatPath: node.chatPath,
         modelsPath: node.modelsPath,
+        customHeaders: node.customHeaders,
         ...(node.customJsonConfig ? { customJson: node.customJsonConfig } : {}),
       };
     }

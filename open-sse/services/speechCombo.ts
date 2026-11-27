@@ -52,7 +52,7 @@ export async function executeSpeechCombo(
   comboName: string,
   body: Record<string, unknown>,
   startTime: number,
-  keyScope: ComboKeyScope = {},
+  keyScope: ComboKeyScope & { clientUserAgent?: string | null } = {},
   apiKeyInfo?: { id?: string | null; name?: string | null } | null
 ): Promise<Response> {
   const combo = await getComboByName(comboName);
@@ -198,6 +198,7 @@ export async function executeSpeechCombo(
       credentials,
       resolvedProvider: providerConfig,
       resolvedModel,
+      clientUserAgent: keyScope.clientUserAgent ?? null,
     });
 
     if (response?.ok) {

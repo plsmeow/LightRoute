@@ -360,7 +360,7 @@ test("openai-compatible validation forwards custom User-Agent", async () => {
     apiKey: "sk-test",
     providerSpecificData: {
       baseUrl: "https://api.example.com/v1",
-      customUserAgent: "MyRouteTester/1.0",
+      customHeaders: { "User-Agent": "MyRouteTester/1.0" },
     },
   });
 

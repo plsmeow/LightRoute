@@ -848,8 +848,16 @@ export async function updateCustomModel(
     ...(updates.normalizeToolCallId !== undefined
       ? { normalizeToolCallId: Boolean(updates.normalizeToolCallId) }
       : {}),
-    ...(updates.isHidden !== undefined ? { isHidden: Boolean(updates.isHidden) } : {}),
+    ...(updates.isHidden !== undefined && !updates.modality
+      ? { isHidden: Boolean(updates.isHidden) }
+      : {}),
   };
+  if (updates.isHidden !== undefined && typeof updates.modality === "string" && updates.modality) {
+    next.hiddenModalities = {
+      ...((current.hiddenModalities as Record<string, boolean> | undefined) || {}),
+      [updates.modality]: Boolean(updates.isHidden),
+    };
+  }
   applyTriStateBooleanOverride(next, updates, "preserveOpenAIDeveloperRole");
   // #1904: manual vision-capability override — `null` clears back to the
   // id-based heuristic in getCustomVisionCapabilityFields().
@@ -1081,8 +1089,8 @@ export function getModelIsHidden(
   modality: string = "chat"
 ): boolean {
   const m = getCustomModelRow(providerId, modelId);
-  if (m && Object.prototype.hasOwnProperty.call(m, "isHidden")) {
-    return Boolean(m.isHidden);
+  if (m && (Object.prototype.hasOwnProperty.call(m, "isHidden") || m.hiddenModalities)) {
+    return isOverrideHiddenForModality(m as ModelCompatOverride, modality);
   }
   const co = readCompatList(providerId).find((e) => e.id === modelId);
   return isOverrideHiddenForModality(co, modality);
@@ -1116,23 +1124,15 @@ export function getHiddenModelsByProvider(modality: string = "chat"): Map<string
           const record = entry as { isHidden?: unknown; hiddenModalities?: unknown };
           const hasHiddenInfo =
             Object.prototype.hasOwnProperty.call(record, "isHidden") ||
-            (namespace === "modelCompatOverrides" &&
-              record.hiddenModalities &&
-              typeof record.hiddenModalities === "object");
+            (record.hiddenModalities && typeof record.hiddenModalities === "object");
           if (!hasHiddenInfo) continue;
-          // #12172: customModels rows have no modality scope (single user-managed
-          // entry) — legacy global isHidden applies to every modality unchanged.
-          const isHidden =
-            namespace === "modelCompatOverrides"
-              ? isOverrideHiddenForModality(
-                  {
-                    isHidden: Boolean(record.isHidden),
-                    hiddenModalities: record.hiddenModalities as
-                      Record<string, boolean> | undefined,
-                  },
-                  modality
-                )
-              : Boolean(record.isHidden);
+          const isHidden = isOverrideHiddenForModality(
+            {
+              isHidden: Boolean(record.isHidden),
+              hiddenModalities: record.hiddenModalities as Record<string, boolean> | undefined,
+            },
+            modality
+          );
           let visibility = visibilityByProvider.get(row.key);
           if (!visibility) {
             visibility = new Map<string, boolean>();
@@ -1170,9 +1170,9 @@ export function setModelIsHidden(
   const customRow = getCustomModelRow(providerId, modelId);
   if (customRow) {
     if (hidden) {
-      updateCustomModel(providerId, modelId, { isHidden: true });
-    } else if (Object.prototype.hasOwnProperty.call(customRow, "isHidden")) {
-      updateCustomModel(providerId, modelId, { isHidden: false });
+      updateCustomModel(providerId, modelId, { isHidden: true, modality });
+    } else if (modality || Object.prototype.hasOwnProperty.call(customRow, "isHidden")) {
+      updateCustomModel(providerId, modelId, { isHidden: false, modality });
     }
     return;
   }

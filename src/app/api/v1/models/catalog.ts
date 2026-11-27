@@ -81,6 +81,7 @@ import {
 import type { ModelCapabilityEntry } from "@/lib/modelsDevSync";
 import { getModelSpec } from "@/shared/constants/modelSpecs";
 import { classifyModelSupportedEndpoints } from "@/shared/constants/modelSupportedEndpoints";
+import { getModelVisibilityModality } from "@/shared/utils/modelVisibility";
 import {
   getModelsCatalogPrefixMode,
   isModelsDevEffortTiersEnabled,
@@ -1408,10 +1409,13 @@ async function buildUnifiedModelsResponseCore(
                 canonicalProviderId,
               ])
             : displayModelId;
+          const visibilityModality = getModelVisibilityModality(
+            nodeModelEndpoints(sm.supportedEndpoints, nodeApiTypes[providerId])
+          );
           if (
-            isModelHiddenBulk(providerId, sm.id, canonicalProviderId) ||
+            isModelHiddenBulk(providerId, sm.id, canonicalProviderId, visibilityModality) ||
             (bareModelId !== sm.id &&
-              isModelHiddenBulk(providerId, bareModelId, canonicalProviderId))
+              isModelHiddenBulk(providerId, bareModelId, canonicalProviderId, visibilityModality))
           )
             continue;
           if (isExcludedByProviderConnections(canonicalProviderId, sm.id)) continue;
@@ -1908,11 +1912,13 @@ async function buildUnifiedModelsResponseCore(
           if (curatedProvider && isDiscoveryImportedCustomSource(model.source)) continue;
           if (!isUnifiedChatSourceModelSelectable(canonicalProviderId, { ...model, id: modelId }))
             continue;
-          if (model.isHidden === true && !revealHidden) continue;
+          const visibilityModality = getModelVisibilityModality(
+            nodeModelEndpoints(model.supportedEndpoints, nodeApiTypes[providerId])
+          );
           if (
-            isModelHiddenBulk(providerId, modelId, canonicalProviderId) ||
+            isModelHiddenBulk(providerId, modelId, canonicalProviderId, visibilityModality) ||
             (bareModelId !== modelId &&
-              isModelHiddenBulk(providerId, bareModelId, canonicalProviderId))
+              isModelHiddenBulk(providerId, bareModelId, canonicalProviderId, visibilityModality))
           )
             continue;
           // Gate on the emitted identity too: rules keyed on the bare

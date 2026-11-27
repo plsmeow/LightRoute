@@ -4,15 +4,22 @@
  *
  * Pure builder extracted from handleChatCore: assembles the per-model upstream extra headers for an
  * execute() call. Merges the configured per-model headers (for the resolved model and its alias),
- * applies a connection's custom User-Agent override, and opts into Claude Fast Mode (CPA bridge
- * header) when enabled in settings for the canonical `claude` provider and a supported model.
+ * applies a connection's custom headers and opts into Claude Fast Mode (CPA bridge header)
+ * when enabled in settings for the canonical `claude` provider and a supported model.
  * Side-effect-free; behaviour is byte-identical to the previous inline closure.
  */
 
 import { getModelUpstreamExtraHeaders } from "@/lib/db/models";
 import { resolveModelAlias } from "../../services/modelDeprecation.ts";
-import { CPA_FORCE_FAST_MODE_HEADER, shouldRequestClaudeFastMode } from "@/lib/providers/claudeFastMode";
+import {
+  CPA_FORCE_FAST_MODE_HEADER,
+  shouldRequestClaudeFastMode,
+} from "@/lib/providers/claudeFastMode";
 import { isForbiddenCustomHeaderName } from "@/shared/constants/upstreamHeaders";
+import {
+  isOpenAICompatibleProvider,
+  isAnthropicCompatibleProvider,
+} from "@/shared/constants/providers";
 import { mergeUpstreamExtraHeaders } from "../../executors/base/headers.ts";
 import { resolveConnectionUpstreamOverrides } from "./connectionUpstreamOverrides.ts";
 import { FORMATS } from "../../translator/formats.ts";
@@ -24,7 +31,6 @@ export function buildUpstreamHeadersForExecute(opts: {
   model: string | null | undefined;
   resolvedModel: string;
   sourceFormat: string;
-  connectionCustomUserAgent: string;
   connectionCustomHeaders?: Record<string, string>;
   settings: unknown;
 }): Record<string, string> {
@@ -35,7 +41,6 @@ export function buildUpstreamHeadersForExecute(opts: {
     model,
     resolvedModel,
     sourceFormat,
-    connectionCustomUserAgent,
     connectionCustomHeaders,
     settings,
   } = opts;
@@ -54,13 +59,13 @@ export function buildUpstreamHeadersForExecute(opts: {
           };
         })();
 
-  if (connectionCustomUserAgent) {
-    upstreamHeaders["User-Agent"] = connectionCustomUserAgent;
-    if ("user-agent" in upstreamHeaders) {
-      upstreamHeaders["user-agent"] = connectionCustomUserAgent;
+  const compatible =
+    isOpenAICompatibleProvider(provider) || isAnthropicCompatibleProvider(provider);
+  if (compatible) {
+    for (const name in upstreamHeaders) {
+      if (name.trim().toLowerCase() === "user-agent") delete upstreamHeaders[name];
     }
   }
-
   // #8369: merge connection-level custom headers UNDER model-level so model-level wins on the
   // same case-insensitive header name. Forbidden header names (hop-by-hop, auth) are silently
   // skipped via isForbiddenCustomHeaderName().
@@ -68,10 +73,9 @@ export function buildUpstreamHeadersForExecute(opts: {
     for (const [key, value] of Object.entries(connectionCustomHeaders)) {
       const keyLower = key.trim().toLowerCase();
       if (!keyLower) continue;
+      if (compatible && keyLower === "user-agent") continue;
       if (isForbiddenCustomHeaderName(key)) continue;
-      const existingKey = Object.keys(upstreamHeaders).find(
-        (k) => k.toLowerCase() === keyLower
-      );
+      const existingKey = Object.keys(upstreamHeaders).find((k) => k.toLowerCase() === keyLower);
       if (!existingKey) {
         upstreamHeaders[key] = value;
       }
@@ -105,12 +109,10 @@ export function applyResponsesWsUpstreamHeaders(
   opts: {
     provider: string;
     model: string;
-    providerSpecificData?: { customUserAgent?: unknown; customHeaders?: unknown } | null;
+    providerSpecificData?: { customHeaders?: unknown } | null;
   }
 ): Record<string, string> {
-  const { connectionCustomUserAgent, connectionCustomHeaders } = resolveConnectionUpstreamOverrides(
-    opts.providerSpecificData
-  );
+  const { connectionCustomHeaders } = resolveConnectionUpstreamOverrides(opts.providerSpecificData);
   mergeUpstreamExtraHeaders(
     executorHeaders,
     buildUpstreamHeadersForExecute({
@@ -120,7 +122,6 @@ export function applyResponsesWsUpstreamHeaders(
       model: opts.model,
       resolvedModel: resolveModelAlias(opts.model, opts.provider),
       sourceFormat: FORMATS.OPENAI_RESPONSES,
-      connectionCustomUserAgent,
       connectionCustomHeaders,
       settings: undefined,
     })

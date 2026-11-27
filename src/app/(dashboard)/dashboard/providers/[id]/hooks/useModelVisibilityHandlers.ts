@@ -84,11 +84,17 @@ export interface UseModelVisibilityHandlersReturn {
   setAutoHideFailed: (v: boolean) => void;
   setVisibilityFilter: (v: "all" | "visible" | "hidden") => void;
   saveModelCompatFlags: (modelId: string, patch: ModelCompatSavePatch) => Promise<void>;
-  handleToggleModelHidden: (providerKey: string, modelId: string, hidden: boolean) => Promise<void>;
+  handleToggleModelHidden: (
+    providerKey: string,
+    modelId: string,
+    hidden: boolean,
+    modality?: string
+  ) => Promise<void>;
   handleBulkToggleModelHidden: (
     providerKey: string,
     modelIds: string[],
-    hidden: boolean
+    hidden: boolean,
+    modality?: string
   ) => Promise<void>;
   handleClearAllModels: () => Promise<void>;
   onTestModel: (modelId: string, fullModel: string) => Promise<void>;
@@ -215,7 +221,8 @@ export function useModelVisibilityHandlers({
   const handleToggleModelHidden = async (
     providerKey: string,
     modelId: string,
-    hidden: boolean
+    hidden: boolean,
+    modality = "chat"
   ): Promise<void> => {
     setTogglingModelId(modelId);
     try {
@@ -224,10 +231,7 @@ export function useModelVisibilityHandlers({
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          // #12172: this page manages only Chat models — scope the hide/unhide to
-          // "chat" so it never suppresses an identically-ID'd model registered
-          // under a different modality's registry (e.g. Image).
-          body: JSON.stringify({ isHidden: hidden, modality: "chat" }),
+          body: JSON.stringify({ isHidden: hidden, modality }),
         }
       );
       if (!res.ok) {
@@ -246,7 +250,8 @@ export function useModelVisibilityHandlers({
   const handleBulkToggleModelHidden = async (
     providerKey: string,
     modelIds: string[],
-    hidden: boolean
+    hidden: boolean,
+    modality = "chat"
   ): Promise<void> => {
     if (modelIds.length === 0) return;
     setBulkVisibilityAction(hidden ? "deselect" : "select");
@@ -254,8 +259,7 @@ export function useModelVisibilityHandlers({
       const res = await fetch(`/api/provider-models?provider=${encodeURIComponent(providerKey)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        // #12172: same "chat"-only scoping as the single-model toggle above.
-        body: JSON.stringify({ isHidden: hidden, modelIds, modality: "chat" }),
+        body: JSON.stringify({ isHidden: hidden, modelIds, modality }),
       });
       if (!res.ok) {
         const detail = await res.text().catch(() => "");

@@ -16,6 +16,7 @@ import {
   normalizeClaudeCodeCompatibleBaseUrl,
 } from "./urlHelpers";
 import { applyCustomUserAgent, mergeConnectionCustomHeaders } from "./headers";
+import { applyCustomHeaders } from "@omniroute/open-sse/services/compatibleProviderHeaders.ts";
 import { toValidationErrorResult, validationRead, validationWrite } from "./transport";
 
 export async function validateAnthropicLikeProvider({
@@ -234,7 +235,7 @@ export async function validateAnthropicCompatibleProvider({
     return { valid: false, error: "No base URL configured for Anthropic compatible provider" };
   }
 
-  const headers = applyCustomUserAgent(
+  const headers = mergeConnectionCustomHeaders(
     {
       "Content-Type": "application/json",
       "x-api-key": apiKey,
@@ -243,7 +244,6 @@ export async function validateAnthropicCompatibleProvider({
     },
     providerSpecificData
   );
-  mergeConnectionCustomHeaders(headers, providerSpecificData);
 
   // Step 1: Best-effort GET /models probe. /models is NOT part of the Anthropic API spec
   // and many compatible proxies either 404, 401, or 403 on /models even with a valid key —
@@ -301,6 +301,17 @@ export async function validateAnthropicCompatibleProvider({
   }
 }
 
+function buildCompatibleProbeHeaders(
+  apiKey: string,
+  stream: boolean,
+  customHeaders: unknown,
+  sessionId?: string
+) {
+  const headers = buildClaudeCodeCompatibleHeaders(apiKey, stream, sessionId);
+  applyCustomHeaders(headers, customHeaders);
+  return headers;
+}
+
 export async function validateClaudeCodeCompatibleProvider({
   apiKey,
   providerSpecificData = {},
@@ -312,11 +323,11 @@ export async function validateClaudeCodeCompatibleProvider({
 
   const modelsPath = providerSpecificData?.modelsPath || CLAUDE_CODE_COMPATIBLE_DEFAULT_MODELS_PATH;
   const chatPath = providerSpecificData?.chatPath || CLAUDE_CODE_COMPATIBLE_DEFAULT_CHAT_PATH;
-  const defaultHeaders = applyCustomUserAgent(
-    buildClaudeCodeCompatibleHeaders(apiKey, false),
-    providerSpecificData
+  const defaultHeaders = buildCompatibleProbeHeaders(
+    apiKey,
+    false,
+    providerSpecificData.customHeaders
   );
-  mergeConnectionCustomHeaders(defaultHeaders, providerSpecificData);
 
   try {
     const modelsRes = await validationRead(joinClaudeCodeCompatibleUrl(baseUrl, modelsPath), {
@@ -343,12 +354,11 @@ export async function validateClaudeCodeCompatibleProvider({
   try {
     const messagesRes = await validationWrite(joinClaudeCodeCompatibleUrl(baseUrl, chatPath), {
       method: "POST",
-      headers: mergeConnectionCustomHeaders(
-        applyCustomUserAgent(
-          buildClaudeCodeCompatibleHeaders(apiKey, true, sessionId),
-          providerSpecificData
-        ),
-        providerSpecificData
+      headers: buildCompatibleProbeHeaders(
+        apiKey,
+        true,
+        providerSpecificData.customHeaders,
+        sessionId
       ),
       body: JSON.stringify(payload),
     });

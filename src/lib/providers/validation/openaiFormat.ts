@@ -475,10 +475,7 @@ async function readModelsPayloadForReasoningControl(
 
 // Probes send the connection's custom headers like the chat path (#8369).
 function buildProbeHeaders(apiKey: string, providerSpecificData: unknown) {
-  return mergeConnectionCustomHeaders(
-    buildBearerHeaders(apiKey, providerSpecificData),
-    providerSpecificData
-  );
+  return mergeConnectionCustomHeaders(buildBearerHeaders(apiKey), providerSpecificData);
 }
 
 export async function validateOpenAICompatibleProvider({

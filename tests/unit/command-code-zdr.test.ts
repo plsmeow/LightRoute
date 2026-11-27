@@ -210,7 +210,6 @@ const BASE_FORM = {
   ccCompatibleRedactThinking: false,
   ccCompatibleSummarizeThinking: false,
   consoleApiKey: "",
-  customUserAgent: "",
   huggingfaceBillTo: "",
   cx: "",
   excludedModels: "",
@@ -251,10 +250,10 @@ test("add modal persists zdrEnabled only for Command Code and only when on", () 
 });
 
 function editTarget(provider: string, commandCodeZdrEnabled: boolean) {
-  const target: Record<string, unknown> = { customUserAgent: "keep-me", region: "us" };
+  const target: Record<string, unknown> = { region: "us" };
   assignEditApiKeyProviderSpecificData({
     provider,
-    formData: { ...BASE_FORM, customUserAgent: "keep-me", commandCodeZdrEnabled } as never,
+    formData: { ...BASE_FORM, commandCodeZdrEnabled } as never,
     target,
     extraApiKeys: [],
     openRouterPreset: { getPatch: () => ({}) },
@@ -275,7 +274,6 @@ function editTarget(provider: string, commandCodeZdrEnabled: boolean) {
 test("edit modal writes an explicit zdrEnabled boolean for Command Code without clobbering other keys", () => {
   const on = editTarget("command-code", true);
   assert.equal(on.zdrEnabled, true);
-  assert.equal(on.customUserAgent, "keep-me");
   assert.equal(on.region, "us");
   // Explicit false (not undefined) so the PUT merge { ...existing, ...incoming } turns it off.
   assert.equal(editTarget("command-code", false).zdrEnabled, false);
@@ -285,7 +283,6 @@ test("edit modal writes an explicit zdrEnabled boolean for Command Code without 
 test("validate request body carries zdrEnabled only for Command Code with the toggle on", () => {
   const form = {
     validationModelId: "",
-    customUserAgent: "",
     baseUrl: "",
     region: "",
     awsAccessKeyId: "",

@@ -43,7 +43,6 @@ export function createInitialAddApiKeyFormData({
     validationModelId: defaultValidationModelIdForProvider(provider), // #5446 item 4 — Modal probe model pre-fill
     routingTags: "",
     excludedModels: "",
-    customUserAgent: "",
     huggingfaceBillTo: "",
     accountId: "",
     consoleApiKey: "",

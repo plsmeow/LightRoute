@@ -17,6 +17,7 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useNotificationStore } from "@/store/notificationStore";
 import { providerText, type CompatModelRow } from "../providerPageHelpers";
+import type { ProviderSpecialtyModel } from "@/lib/providerModels/providerSpecialtyModels";
 
 // ──── types ─────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ export interface ModelMeta {
 
 export interface UseProviderModelsReturn {
   modelMeta: ModelMeta;
+  specialtyModels: ProviderSpecialtyModel[];
   syncedAvailableModels: any[];
   syncedCatalogAuthoritative: boolean;
   modelAliases: Record<string, string>;
@@ -49,6 +51,11 @@ export function useProviderModels(
     modelCompatOverrides: [],
     endpointAdapters: {},
   });
+  const [specialtyCatalog, setSpecialtyCatalog] = useState({
+    providerId: "",
+    models: [] as ProviderSpecialtyModel[],
+  });
+  const specialtyModels = specialtyCatalog.providerId === providerId ? specialtyCatalog.models : [];
   const [syncedCatalog, setSyncedCatalog] = useState({
     providerId: "",
     models: [] as any[],
@@ -137,6 +144,7 @@ export function useProviderModels(
         modelCompatOverrides: data.modelCompatOverrides || [],
         endpointAdapters: data.endpointAdapters || {},
       });
+      setSpecialtyCatalog({ providerId, models: data.specialtyModels || [] });
       try {
         const syncRes = await fetch(
           `/api/synced-available-models?provider=${encodeURIComponent(providerId)}`,
@@ -162,6 +170,7 @@ export function useProviderModels(
 
   return {
     modelMeta,
+    specialtyModels,
     syncedAvailableModels,
     syncedCatalogAuthoritative,
     modelAliases,

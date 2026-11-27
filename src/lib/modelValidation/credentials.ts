@@ -1,6 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
 import { resolveProviderNodeForConnection } from "../db/providers";
-import { isCompatibleProviderConnectionId } from "../../shared/utils/compatibleProviderId";
+import {
+  isOpenAICompatibleProvider,
+  isAnthropicCompatibleProvider,
+} from "@/shared/constants/providers";
+import { hydrateCompatibleNodeData } from "../db/providerNodeSelect";
 import { ModelValidationError } from "./http";
 
 type RecordValue = Record<string, unknown>;
@@ -16,34 +20,10 @@ function object(value: unknown): RecordValue {
 
 async function freshProviderData(provider: string, value: unknown) {
   const data = object(value);
-  if (!isCompatibleProviderConnectionId(provider) || data.baseUrl) return data;
+  if (!isOpenAICompatibleProvider(provider) && !isAnthropicCompatibleProvider(provider))
+    return data;
   const node = await resolveProviderNodeForConnection(provider);
-  if (!node?.baseUrl) return data;
-  // Same hydration contract as compatibleNodeBaseUrl, but this read is deliberately uncached.
-  return {
-    ...data,
-    prefix: data.prefix ?? node.prefix,
-    apiType: data.apiType ?? node.apiType,
-    baseUrl: node.baseUrl,
-    nodeName: data.nodeName ?? node.name,
-    ...optionalNodeFields(node, data),
-  };
-}
-
-/** Node settings the connection does not set itself. */
-function optionalNodeFields(
-  node: NonNullable<Awaited<ReturnType<typeof resolveProviderNodeForConnection>>>,
-  data: Record<string, unknown>
-) {
-  const candidates: Record<string, unknown> = {
-    chatPath: node.chatPath,
-    modelsPath: node.modelsPath,
-    customHeaders: node.customHeaders,
-    customJson: node.customJsonConfig,
-  };
-  return Object.fromEntries(
-    Object.entries(candidates).filter(([key, value]) => value && !data[key])
-  );
+  return node ? hydrateCompatibleNodeData(data, node) : data;
 }
 
 /** A fresh DB fingerprint alone cannot attest a previously cached selection's metadata. */

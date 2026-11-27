@@ -1,6 +1,10 @@
 import { getSettings } from "@/lib/db/settings";
 
-export type HomeSettings = { setupComplete?: unknown };
+export type HomeSettings = {
+  setupComplete?: unknown;
+  /** Settings → Appearance → "Pin Information to Home Page" toggle; default ON. */
+  showUnpricedUsageBannerOnHome?: unknown;
+};
 
 /**
  * Settings read for the Home Server Component (#14060).

@@ -105,8 +105,8 @@ test("DefaultExecutor uses x-api-key for kimi-coding-apikey", () => {
   assert.equal((headers as any).Authorization, undefined);
 });
 
-test("DefaultExecutor execute honors connection-level custom User-Agent", async () => {
-  const executor = new DefaultExecutor("openai");
+test("DefaultExecutor forwards the caller User-Agent instead of the legacy per-key value", async () => {
+  const executor = new DefaultExecutor("openai-compatible-chat-test");
   const originalFetch = globalThis.fetch;
   let capturedHeaders = null;
 
@@ -123,9 +123,11 @@ test("DefaultExecutor execute honors connection-level custom User-Agent", async 
         messages: [{ role: "user", content: "hello" }],
       },
       stream: false,
+      clientHeaders: { "user-agent": "OpenAI/NodeJS 4.20.0 undici" },
       credentials: {
         apiKey: "sk-openai-test",
         providerSpecificData: {
+          baseUrl: "https://api.example.com/v1",
           customUserAgent: "OmniRouteCustomUA/2.0",
         },
       },
@@ -136,7 +138,7 @@ test("DefaultExecutor execute honors connection-level custom User-Agent", async 
 
   assert.ok(capturedHeaders);
   assert.equal(capturedHeaders.Authorization, "Bearer sk-openai-test");
-  assert.equal(capturedHeaders["User-Agent"], "OmniRouteCustomUA/2.0");
+  assert.equal(capturedHeaders["User-Agent"], "OpenAI/NodeJS 4.20.0 undici");
 });
 
 test("CodexExecutor forces stream=true for upstream compatibility", () => {

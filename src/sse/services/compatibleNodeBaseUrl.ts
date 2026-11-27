@@ -16,8 +16,14 @@
  */
 
 import { getCachedProviderNodes } from "@/lib/db/readCache";
-import { selectProviderNodeForConnection } from "@/lib/db/providerNodeSelect";
-import { isCompatibleProviderConnectionId } from "@/shared/utils/compatibleProviderId";
+import {
+  hydrateCompatibleNodeData,
+  selectProviderNodeForConnection,
+} from "@/lib/db/providerNodeSelect";
+import {
+  isOpenAICompatibleProvider,
+  isAnthropicCompatibleProvider,
+} from "@/shared/constants/providers";
 import { resolveAccountProxiesFromRegistry } from "./noAuthProxyResolution";
 
 type JsonRecord = Record<string, unknown>;
@@ -63,37 +69,16 @@ async function hydrateCompatibleNodeBaseUrl(
   provider: string,
   providerSpecificData: JsonRecord
 ): Promise<JsonRecord> {
-  if (!isCompatibleProviderConnectionId(provider)) return providerSpecificData;
+  if (!isOpenAICompatibleProvider(provider) && !isAnthropicCompatibleProvider(provider)) {
+    return providerSpecificData;
+  }
 
   try {
     const nodes = (await getCachedProviderNodes()) as JsonRecord[];
     const node = selectProviderNodeForConnection(provider, nodes);
     if (!node) return providerSpecificData;
 
-    const nodeCustomHeaders = (node.customHeaders as Record<string, string> | null) ?? null;
-    const nodeUserAgent =
-      (typeof node.customUserAgent === "string" && node.customUserAgent.trim()) ||
-      nodeCustomHeaders?.["User-Agent"] ||
-      nodeCustomHeaders?.["user-agent"] ||
-      "";
-
-    const result = { ...providerSpecificData };
-    if (!result.baseUrl && typeof node.baseUrl === "string") {
-      result.baseUrl = node.baseUrl;
-      result.prefix = result.prefix ?? node.prefix;
-      result.apiType = result.apiType ?? node.apiType;
-      result.nodeName = result.nodeName ?? node.name;
-      if (node.chatPath && !result.chatPath) result.chatPath = node.chatPath;
-      if (node.modelsPath && !result.modelsPath) result.modelsPath = node.modelsPath;
-      if (node.customJsonConfig && !result.customJson) result.customJson = node.customJsonConfig;
-    }
-    if (nodeUserAgent && !result.customUserAgent) {
-      result.customUserAgent = nodeUserAgent;
-    }
-    if (node.customHeaders && !result.customHeaders) {
-      result.customHeaders = node.customHeaders;
-    }
-    return result;
+    return hydrateCompatibleNodeData(providerSpecificData, node);
   } catch {
     return providerSpecificData;
   }

@@ -11,6 +11,12 @@ import NewApiAggregatorFields from "./NewApiAggregatorFields";
 import CustomJsonFields from "./CustomJsonFields";
 import { CUSTOM_JSON_API_TYPE, createCustomJsonForm, parseCustomJsonForm } from "./customJsonForm";
 import { providerText } from "../../providerPageHelpers";
+import {
+  getProviderUserAgent,
+  isProviderUserAgentValid,
+  readProviderUserAgentSetting,
+} from "@/shared/constants/providerUserAgentPresets";
+import ProviderUserAgentFields from "../../../components/ProviderUserAgentFields";
 interface EditCompatibleNodeModalNode {
   id?: string;
   name?: string;
@@ -23,6 +29,8 @@ interface EditCompatibleNodeModalNode {
   dailyQuotaResetTimezone?: string | null;
   dailyQuotaResetHour?: number | null;
   providerSpecificData?: Record<string, unknown>;
+  customUserAgent?: string;
+  customHeaders?: Record<string, string> | null;
   /** Derived from the node's connections (useProviderConnections). */
   quotaCheck?: { enabled: boolean; path: string } | null;
   /** Custom JSON API node config (apiType "custom-json"), as stored by the API. */
@@ -63,7 +71,7 @@ export default function EditCompatibleNodeModal({
     dailyQuotaResetHour: "",
     quotaCheckEnabled: false,
     quotaPath: DEFAULT_COMPATIBLE_QUOTA_PATH,
-    customUserAgent: "",
+    userAgent: readProviderUserAgentSetting(),
   });
   const [saving, setSaving] = useState(false);
   const [checkKey, setCheckKey] = useState("");
@@ -122,9 +130,12 @@ export default function EditCompatibleNodeModal({
             : "",
         quotaCheckEnabled: node.quotaCheck?.enabled === true,
         quotaPath: node.quotaCheck?.path || DEFAULT_COMPATIBLE_QUOTA_PATH,
-        customUserAgent:
-          ((node as any).customUserAgent as string) ||
-          (((node as any).customHeaders as Record<string, string>)?.["User-Agent"] ?? ""),
+        userAgent: readProviderUserAgentSetting(
+          node.customUserAgent ||
+            Object.entries(node.customHeaders || {}).find(
+              ([name]) => name.toLowerCase() === "user-agent"
+            )?.[1]
+        ),
       });
       setSaveError(null);
       setIconUrlError(null);
@@ -151,9 +162,17 @@ export default function EditCompatibleNodeModal({
     { value: CUSTOM_JSON_API_TYPE, label: t("customJsonApi") },
   ];
   const isCustomJson = !isAnthropic && formData.apiType === CUSTOM_JSON_API_TYPE;
+  const validUserAgent = isProviderUserAgentValid(formData.userAgent);
 
   const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.prefix.trim() || !formData.baseUrl.trim()) return;
+    if (
+      !formData.name.trim() ||
+      !formData.prefix.trim() ||
+      !formData.baseUrl.trim() ||
+      !validUserAgent
+    ) {
+      return;
+    }
     const iconUrl = formData.iconUrl.trim();
     if (!isValidProviderIconUrl(iconUrl)) {
       setIconUrlError(t("iconUrlInvalid"));
@@ -175,7 +194,7 @@ export default function EditCompatibleNodeModal({
         chatPath: formData.chatPath || (isCcCompatible ? CC_COMPATIBLE_DEFAULT_CHAT_PATH : ""),
         modelsPath: isCcCompatible ? "" : formData.modelsPath,
         iconUrl: formData.iconUrl.trim(),
-        customUserAgent: formData.customUserAgent.trim(),
+        customUserAgent: getProviderUserAgent(formData.userAgent),
       };
       const tz = formData.dailyQuotaResetTimezone.trim();
       payload.dailyQuotaResetTimezone = tz || null;
@@ -227,6 +246,13 @@ export default function EditCompatibleNodeModal({
       return;
     }
     setValidating(true);
+    const headers = Object.fromEntries(
+      Object.entries(node?.customHeaders ?? {}).filter(
+        ([name]) => name.toLowerCase() !== "user-agent"
+      )
+    );
+    const userAgent = getProviderUserAgent(formData.userAgent);
+    if (userAgent) headers["User-Agent"] = userAgent;
     try {
       const res = await fetch("/api/provider-nodes/validate", {
         method: "POST",
@@ -241,6 +267,7 @@ export default function EditCompatibleNodeModal({
           modelsPath: isCcCompatible ? "" : formData.modelsPath,
           modelId: checkModelId.trim() || undefined,
           customJson: customJsonResult?.config,
+          customHeaders: headers,
         }),
       });
       const data = await res.json();
@@ -335,12 +362,9 @@ export default function EditCompatibleNodeModal({
                   })
           }
         />
-        <Input
-          label="Custom User-Agent"
-          value={formData.customUserAgent}
-          onChange={(e) => setFormData({ ...formData, customUserAgent: e.target.value })}
-          placeholder="e.g. Claude-Code/0.2.29, Cursor/0.45.0"
-          hint="Подмена заголовка User-Agent для всех запросов этого провайдера"
+        <ProviderUserAgentFields
+          value={formData.userAgent}
+          onChange={(userAgent) => setFormData({ ...formData, userAgent })}
         />
         {isCustomJson && <CustomJsonFields value={customJson} onChange={setCustomJson} t={t} />}
         <Input
@@ -456,7 +480,8 @@ export default function EditCompatibleNodeModal({
               disabled={
                 (!checkKey && !(isCustomJson && customJson.authType === "none")) ||
                 validating ||
-                !formData.baseUrl.trim()
+                !formData.baseUrl.trim() ||
+                !validUserAgent
               }
               variant="secondary"
             >
@@ -500,7 +525,11 @@ export default function EditCompatibleNodeModal({
             onClick={handleSubmit}
             fullWidth
             disabled={
-              !formData.name.trim() || !formData.prefix.trim() || !formData.baseUrl.trim() || saving
+              !formData.name.trim() ||
+              !formData.prefix.trim() ||
+              !formData.baseUrl.trim() ||
+              !validUserAgent ||
+              saving
             }
           >
             {saving ? t("saving") : t("save")}

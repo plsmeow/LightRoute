@@ -5,7 +5,7 @@ import {
   summarizeProviderConnectionForAudit,
 } from "@/lib/compliance/providerAudit";
 import { getCachedProviderConnectionById } from "@/lib/db/readCache";
-import { updateProviderConnection } from "@/lib/db/providers";
+import { getProviderNodeById, updateProviderConnection } from "@/lib/db/providers";
 import { clearRequestRejectedStreak } from "@omniroute/open-sse/services/requestRejectedStreak.ts";
 import { deleteProviderConnection } from "@/lib/db/providers/deletion";
 import { isCloudEnabled } from "@/lib/db/settings";
@@ -48,6 +48,10 @@ import { parseM365RefreshToken } from "@/lib/providers/m365RefreshToken";
 import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error.ts";
 import { getQuotaCacheState } from "@/domain/quotaCacheState";
 import { retireUnreportedQuotaWindows } from "@/domain/quotaSnapshotPersistence";
+import {
+  isOpenAICompatibleProvider,
+  isAnthropicCompatibleProvider,
+} from "@/shared/constants/providers";
 
 // providerSpecificData keys only server-side writers set (key rotation health, Antigravity
 // verification link, Alibaba free-tier quota state). A dashboard form loaded earlier carries
@@ -343,6 +347,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
       const mergedPsd = { ...existingPsd, ...incomingPsd };
       keepServerOwnedPsd(mergedPsd, existingPsd);
+      if (
+        "customHeaders" in incomingPsd &&
+        (isOpenAICompatibleProvider(existing.provider) ||
+          isAnthropicCompatibleProvider(existing.provider))
+      ) {
+        const nodeHeaders = (await getProviderNodeById(existing.provider))?.customHeaders;
+        const headers = { ...(mergedPsd.customHeaders as Record<string, unknown>) };
+        for (const name of Object.keys(headers)) {
+          if (name.trim().toLowerCase() === "user-agent") delete headers[name];
+        }
+        if (nodeHeaders && typeof nodeHeaders === "object") {
+          for (const [name, value] of Object.entries(nodeHeaders)) {
+            if (name.trim().toLowerCase() === "user-agent") headers[name] = value;
+          }
+        }
+        mergedPsd.customHeaders = headers;
+      }
       if (m365Token.data.refreshToken) delete mergedPsd.refreshToken;
       delete mergedPsd.validationId;
       delete mergedPsd.runtimeKey;

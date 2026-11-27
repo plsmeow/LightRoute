@@ -274,19 +274,6 @@ export function validateProviderSpecificData(
     });
   }
 
-  const customUserAgent = data.customUserAgent;
-  if (
-    customUserAgent !== undefined &&
-    customUserAgent !== null &&
-    (typeof customUserAgent !== "string" || customUserAgent.length > 500)
-  ) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "providerSpecificData.customUserAgent must be a string up to 500 chars",
-      path: ["customUserAgent"],
-    });
-  }
-
   const githubCreditLimit = data.githubCreditLimit;
   if (githubCreditLimit !== undefined && !isValidGitHubCreditLimit(githubCreditLimit)) {
     ctx.addIssue({

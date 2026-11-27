@@ -920,6 +920,7 @@ export async function handleAudioSpeech({
   credentials,
   resolvedProvider = null,
   resolvedModel = null,
+  clientUserAgent = null as string | null,
 }) {
   if (!body.model) {
     return errorResponse(400, "model is required");
@@ -1086,7 +1087,7 @@ export async function handleAudioSpeech({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...buildAuthHeaders(providerConfig, token),
+        ...buildAuthHeaders(providerConfig, token, clientUserAgent),
       },
       body: JSON.stringify({
         model: modelId,

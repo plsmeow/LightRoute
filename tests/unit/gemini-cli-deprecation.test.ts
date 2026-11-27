@@ -38,7 +38,7 @@ import {
   supportsTokenRefresh,
   TOKEN_EXPIRY_BUFFER_MS,
 } from "../../open-sse/services/tokenRefresh.ts";
-import { CLIENT_IDENTITY_PROFILES } from "../../src/shared/constants/clientIdentityProfiles.ts";
+import { getGeminiCliUserAgent } from "../../src/shared/constants/geminiCliClient.ts";
 import { assertRuntimeProviderAvailable } from "../../src/shared/constants/providerRetirement.ts";
 
 test("gemini-cli is registered as deprecated, with a migration target that is routable", () => {
@@ -108,13 +108,7 @@ test("refreshing a stored gemini-cli connection fails with a CLASSIFIED code, no
 });
 
 test("the gemini-cli CLIENT identity is untouched (issue #7034)", () => {
-  // Category A. Requests ARRIVING from the Gemini CLI — OmniRoute is the server here.
-  // Deleting this is the failure mode the deprecation must never cause.
-  assert.ok(
-    CLIENT_IDENTITY_PROFILES["gemini-cli"],
-    "the gemini-cli client-identity profile must survive the provider deprecation"
-  );
-  assert.equal(CLIENT_IDENTITY_PROFILES["gemini-cli"].id, "gemini-cli");
+  assert.match(getGeminiCliUserAgent(), /^GeminiCLI\//);
 });
 
 test("deprecation does not resurrect the provider into any routable registry", () => {

@@ -9,9 +9,12 @@ import { Badge, Button, Input, Modal, Select, Toggle } from "@/shared/components
 import { readFetchErrorMessage } from "@/shared/utils/fetchError";
 import { isValidProviderIconUrl } from "@/shared/validation/iconUrl";
 import {
-  CLIENT_IDENTITY_PROFILE_OPTIONS,
-  getClientIdentityProfileHeaders,
-} from "@/shared/constants/clientIdentityProfiles";
+  getProviderUserAgent,
+  isProviderUserAgentValid,
+  readProviderUserAgentSetting,
+  type ProviderUserAgentSetting,
+} from "@/shared/constants/providerUserAgentPresets";
+import ProviderUserAgentFields from "./ProviderUserAgentFields";
 import NewApiAggregatorFields from "../[id]/components/modals/NewApiAggregatorFields";
 import CustomJsonFields from "../[id]/components/modals/CustomJsonFields";
 import {
@@ -41,12 +44,11 @@ interface CompatibleFormState {
   chatPath: string;
   modelsPath: string;
   iconUrl: string;
-  clientIdentityProfile: string;
   newApiAggregatorBalance: boolean;
   consoleApiKey: string;
   newApiUserId: string;
   quotaPerUnit: string;
-  customUserAgent: string;
+  userAgent: ProviderUserAgentSetting;
 }
 
 const CC_DEFAULT_CHAT_PATH = "/v1/messages?beta=true";
@@ -101,12 +103,11 @@ function createInitialForm(mode: CompatibleMode): CompatibleFormState {
     chatPath: defaults.chatPath,
     modelsPath: "",
     iconUrl: "",
-    clientIdentityProfile: "default",
     newApiAggregatorBalance: false,
     consoleApiKey: "",
     newApiUserId: "",
     quotaPerUnit: "",
-    customUserAgent: "",
+    userAgent: readProviderUserAgentSetting(),
   };
 }
 
@@ -207,11 +208,14 @@ export default function AddCompatibleProviderModal({
   const chatPathHint = mode === "cc" ? t("ccCompatibleChatPathHint") : t("chatPathHint");
   const advancedId = `advanced-settings-${mode}`;
   const isCustomJson = defaults.hasApiType && formData.apiType === CUSTOM_JSON_API_TYPE;
+  const validUserAgent = isProviderUserAgentValid(formData.userAgent);
   const hasRequiredFields = Boolean(
-    formData.name.trim() && formData.prefix.trim() && formData.baseUrl.trim()
+    formData.name.trim() && formData.prefix.trim() && formData.baseUrl.trim() && validUserAgent
   );
   const canValidate = Boolean(
-    (checkKey.trim() || (isCustomJson && customJson.authType === "none")) && formData.baseUrl.trim()
+    (checkKey.trim() || (isCustomJson && customJson.authType === "none")) &&
+    formData.baseUrl.trim() &&
+    validUserAgent
   );
   // Custom JSON API nodes take the complete endpoint URL: never prefill the OpenAI one.
   const changeApiType = (apiType: string) => {
@@ -263,16 +267,8 @@ export default function AddCompatibleProviderModal({
       const providerIdSuffix = formData.providerIdSuffix.trim();
       if (providerIdSuffix) body.providerIdSuffix = providerIdSuffix;
       body.iconUrl = formData.iconUrl.trim();
-      // Merge the selected identity profile's preset headers into the SAME
-      // `customHeaders` field the node already persists (see
-      // src/lib/db/providers/nodes.ts + open-sse/executors/default.ts
-      // `applyCustomHeaders`) — no separate profile field, no new pipeline.
-      const identityHeaders = getClientIdentityProfileHeaders(formData.clientIdentityProfile);
-      if (formData.customUserAgent?.trim()) {
-        identityHeaders["User-Agent"] = formData.customUserAgent.trim();
-        body.customUserAgent = formData.customUserAgent.trim();
-      }
-      if (Object.keys(identityHeaders).length > 0) body.customHeaders = identityHeaders;
+      const userAgent = getProviderUserAgent(formData.userAgent);
+      if (userAgent) body.customUserAgent = userAgent;
 
       // Aggregator gateway fields (#9415)
       if (formData.newApiAggregatorBalance) {
@@ -348,6 +344,8 @@ export default function AddCompatibleProviderModal({
       const trimmedModelId = checkModelId.trim();
       if (trimmedModelId) body.modelId = trimmedModelId;
       if (customJsonResult?.config) body.customJson = customJsonResult.config;
+      const userAgent = getProviderUserAgent(formData.userAgent);
+      if (userAgent) body.customHeaders = { "User-Agent": userAgent };
 
       const res = await fetch("/api/provider-nodes/validate", {
         method: "POST",
@@ -418,12 +416,9 @@ export default function AddCompatibleProviderModal({
           placeholder={isCustomJson ? "https://api.example.com/v1/answer" : baseUrlPlaceholder}
           hint={isCustomJson ? t("customJsonEndpointHint") : baseUrlHint}
         />
-        <Input
-          label="Custom User-Agent"
-          value={formData.customUserAgent}
-          onChange={(e) => setFormData({ ...formData, customUserAgent: e.target.value })}
-          placeholder="e.g. Claude-Code/0.2.29, Cursor/0.45.0"
-          hint="Подмена заголовка User-Agent для всех запросов этого провайдера"
+        <ProviderUserAgentFields
+          value={formData.userAgent}
+          onChange={(userAgent) => setFormData({ ...formData, userAgent })}
         />
         {isCustomJson && <CustomJsonFields value={customJson} onChange={setCustomJson} t={t} />}
         <Input
@@ -488,13 +483,6 @@ export default function AddCompatibleProviderModal({
                 hint={t("modelsPathHint")}
               />
             )}
-            <Select
-              label={t("clientIdentityLabel")}
-              options={CLIENT_IDENTITY_PROFILE_OPTIONS.map((option) => ({ ...option }))}
-              value={formData.clientIdentityProfile}
-              onChange={(e) => setFormData({ ...formData, clientIdentityProfile: e.target.value })}
-              hint={t("clientIdentityHint")}
-            />
           </div>
         )}
 

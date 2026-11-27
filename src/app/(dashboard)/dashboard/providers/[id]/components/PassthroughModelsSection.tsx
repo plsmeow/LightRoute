@@ -34,12 +34,15 @@ import {
   type CompatModelRow,
 } from "../providerPageHelpers";
 import { ModelVisibilityToolbar } from "./ModelRow";
-import { sortModelsFreeFirst, isModelFreeBadge } from "@/shared/utils/freeModels";
+import { isModelFreeBadge } from "@/shared/utils/freeModels";
 import { useStrictFreeBadge } from "./useStrictFreeBadge";
 import PassthroughModelRow from "./PassthroughModelRow";
 import { useModelVisionOverrides } from "../hooks/useModelVisionOverrides";
 import { useModelOutputOverrides } from "../hooks/useModelOutputOverrides";
 import { useProviderContextOverrides } from "../hooks/useProviderContextOverrides";
+import type { ProviderSpecialtyModel } from "@/lib/providerModels/providerSpecialtyModels";
+import ProviderSpecialtyModelRow from "./ProviderSpecialtyModelRow";
+import { filterProviderModelRows, toggleProviderModelRows } from "./providerModelRows";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -61,6 +64,7 @@ export interface PassthroughModelsSectionProps {
   syncedCatalogAuthoritative?: boolean;
   customModels?: CompatModelRow[];
   endpointAdapters?: Record<string, "available" | "unavailable" | "unknown">;
+  specialtyModels?: ProviderSpecialtyModel[];
   description: string;
   inputLabel: string;
   inputPlaceholder: string;
@@ -75,8 +79,8 @@ export interface PassthroughModelsSectionProps {
   saveModelCompatFlags: (modelId: string, flags: ModelCompatSavePatchPassthrough) => Promise<void>;
   compatSavingModelId?: string;
   isModelHidden: (modelId: string) => boolean;
-  onToggleHidden: (modelId: string, hidden: boolean) => Promise<void>;
-  onBulkToggleHidden: (modelIds: string[], hidden: boolean) => Promise<void>;
+  onToggleHidden: (modelId: string, hidden: boolean, modality?: string) => Promise<void>;
+  onBulkToggleHidden: (modelIds: string[], hidden: boolean, modality?: string) => Promise<void>;
   bulkTogglePending?: boolean;
   togglingModelId?: string | null;
   onTestModel?: (modelId: string, fullModel: string) => Promise<void>;
@@ -107,6 +111,7 @@ export default function PassthroughModelsSection({
   comboUsage,
   catalogModels = [],
   availableModels = [],
+  specialtyModels = [],
   syncedCatalogAuthoritative = false,
   customModels = [],
   endpointAdapters = {},
@@ -376,10 +381,17 @@ export default function PassthroughModelsSection({
 
     return matchesQuery && matchesVisibility && matchesFreeFilter;
   });
-  const displayModels = sortFreeFirst
-    ? sortModelsFreeFirst(filteredModels, { isFree: (m) => m.isFree, key: (m) => m.modelId })
-    : filteredModels;
-  const activeCount = allModels.filter((model) => !model.isHidden).length;
+  const { displayRows, activeCount, totalCount } = filterProviderModelRows({
+    allModels,
+    filteredModels,
+    specialtyModels,
+    providerId,
+    modelFilter,
+    visibilityFilter,
+    freeFilter,
+    sortFreeFirst,
+    getId: (model) => model.modelId,
+  });
 
   const handleAdd = async () => {
     if (!newModel.trim() || adding) return;
@@ -426,29 +438,19 @@ export default function PassthroughModelsSection({
       </div>
 
       {/* Models list */}
-      {allModels.length > 0 && (
+      {totalCount > 0 && (
         <div className="flex flex-col gap-3">
           <ModelVisibilityToolbar
             t={t}
             filterValue={modelFilter}
             onFilterChange={setModelFilter}
             activeCount={activeCount}
-            totalCount={allModels.length}
-            onSelectAll={() =>
-              onBulkToggleHidden(
-                filteredModels.map((m) => m.modelId),
-                false
-              )
-            }
-            onDeselectAll={() =>
-              onBulkToggleHidden(
-                filteredModels.map((m) => m.modelId),
-                true
-              )
-            }
-            selectAllDisabled={bulkTogglePending || filteredModels.length === 0}
-            deselectAllDisabled={bulkTogglePending || filteredModels.length === 0}
-            onTestAll={handleTestAll}
+            totalCount={totalCount}
+            onSelectAll={() => toggleProviderModelRows(displayRows, false, onBulkToggleHidden)}
+            onDeselectAll={() => toggleProviderModelRows(displayRows, true, onBulkToggleHidden)}
+            selectAllDisabled={bulkTogglePending || displayRows.length === 0}
+            deselectAllDisabled={bulkTogglePending || displayRows.length === 0}
+            onTestAll={filteredModels.some((model) => !model.isHidden) ? handleTestAll : undefined}
             testingAll={testingAll}
             visibilityFilter={visibilityFilter}
             onVisibilityFilterChange={setVisibilityFilter}
@@ -460,81 +462,93 @@ export default function PassthroughModelsSection({
             onSortFreeFirstChange={setSortFreeFirst}
           />
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            {displayModels.map(
-              ({ modelId, fullModel, alias, isHidden, source, isFree, supportsVision }) => {
-                const discovered = availableModels.find((row) => row.id === modelId);
-                const selected = customModelMap.get(modelId);
-                const catalog = catalogModels.find((row) => row.id === modelId);
-                const effectiveVision =
-                  visionOverrides.overrides[modelId] ??
-                  supportsVision ??
-                  selected?.supportsVision ??
-                  discovered?.supportsVision ??
-                  catalog?.supportsVision;
-
+            {displayRows.map((row) => {
+              if (row.specialty)
                 return (
-                  <PassthroughModelRow
-                    key={fullModel as string}
-                    modelId={modelId}
-                    fullModel={fullModel}
-                    provider={providerId}
-                    endpointInfo={(() => {
-                      return {
-                        supportedEndpoints:
-                          selected?.supportedEndpoints ??
-                          discovered?.supportedEndpoints ??
-                          catalog?.supportedEndpoints,
-                        endpointCapabilitySource:
-                          selected?.endpointCapabilitySource ??
-                          discovered?.endpointCapabilitySource ??
-                          catalog?.endpointCapabilitySource,
-                        discoveredEndpoints: discovered?.supportedEndpoints,
-                        resettable: Boolean(
-                          discovered && selected?.endpointCapabilitySource === "operator"
-                        ),
-                        onChanged: onModelsChanged,
-                        adapterStatuses: endpointAdapters,
-                      };
-                    })()}
-                    alias={alias}
-                    source={source}
-                    isFree={isFree}
-                    isHidden={isHidden}
-                    combos={comboUsage?.[modelId]}
+                  <ProviderSpecialtyModelRow
+                    key={row.key}
+                    model={row.specialty}
                     copied={copied}
                     onCopy={onCopy}
-                    onDeleteAlias={
-                      source === "alias" && alias ? () => onDeleteAlias(alias) : undefined
-                    }
-                    onSetAlias={(a) => onSetAlias(modelId, a)}
                     t={t}
-                    showDeveloperToggle
-                    effectiveModelNormalize={effectiveModelNormalize}
-                    effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
-                    getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
-                    saveModelCompatFlags={saveModelCompatFlags}
-                    compatDisabled={compatSavingModelId === modelId}
+                    disabled={togglingModelId === row.id || !!bulkTogglePending}
                     onToggleHidden={onToggleHidden}
-                    togglingHidden={togglingModelId === modelId}
-                    onTestModel={onTestModel}
-                    testStatus={modelTestStatus?.[modelId] ?? null}
-                    testingModel={testingModelId === modelId}
-                    supportsVision={effectiveVision}
-                    visionOverride={visionOverrides.overrides[modelId]}
-                    onSaveVisionOverride={visionOverrides.save}
-                    savingVisionOverride={visionOverrides.savingModelId === modelId}
-                    maxOutputTokenOverride={outputOverrides.overrides[modelId] ?? null}
-                    onSaveMaxOutputTokenOverride={outputOverrides.save}
-                    savingOutputOverride={outputOverrides.savingModelId === modelId}
-                    contextWindowOverride={contextOverrides[modelId] ?? null}
-                    onSaveContextWindowOverride={saveContextWindowOverride}
-                    savingContextOverride={savingContextModelId === modelId}
                   />
                 );
-              }
-            )}
+              const { modelId, fullModel, alias, isHidden, source, isFree, supportsVision } =
+                row.model;
+              const discovered = availableModels.find((row) => row.id === modelId);
+              const selected = customModelMap.get(modelId);
+              const catalog = catalogModels.find((row) => row.id === modelId);
+              const effectiveVision =
+                visionOverrides.overrides[modelId] ??
+                supportsVision ??
+                selected?.supportsVision ??
+                discovered?.supportsVision ??
+                catalog?.supportsVision;
+
+              return (
+                <PassthroughModelRow
+                  key={fullModel as string}
+                  modelId={modelId}
+                  fullModel={fullModel}
+                  provider={providerId}
+                  endpointInfo={(() => {
+                    return {
+                      supportedEndpoints:
+                        selected?.supportedEndpoints ??
+                        discovered?.supportedEndpoints ??
+                        catalog?.supportedEndpoints,
+                      endpointCapabilitySource:
+                        selected?.endpointCapabilitySource ??
+                        discovered?.endpointCapabilitySource ??
+                        catalog?.endpointCapabilitySource,
+                      discoveredEndpoints: discovered?.supportedEndpoints,
+                      resettable: Boolean(
+                        discovered && selected?.endpointCapabilitySource === "operator"
+                      ),
+                      onChanged: onModelsChanged,
+                      adapterStatuses: endpointAdapters,
+                    };
+                  })()}
+                  alias={alias}
+                  source={source}
+                  isFree={isFree}
+                  isHidden={isHidden}
+                  combos={comboUsage?.[modelId]}
+                  copied={copied}
+                  onCopy={onCopy}
+                  onDeleteAlias={
+                    source === "alias" && alias ? () => onDeleteAlias(alias) : undefined
+                  }
+                  onSetAlias={(a) => onSetAlias(modelId, a)}
+                  t={t}
+                  showDeveloperToggle
+                  effectiveModelNormalize={effectiveModelNormalize}
+                  effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
+                  getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
+                  saveModelCompatFlags={saveModelCompatFlags}
+                  compatDisabled={compatSavingModelId === modelId}
+                  onToggleHidden={onToggleHidden}
+                  togglingHidden={togglingModelId === modelId}
+                  onTestModel={onTestModel}
+                  testStatus={modelTestStatus?.[modelId] ?? null}
+                  testingModel={testingModelId === modelId}
+                  supportsVision={effectiveVision}
+                  visionOverride={visionOverrides.overrides[modelId]}
+                  onSaveVisionOverride={visionOverrides.save}
+                  savingVisionOverride={visionOverrides.savingModelId === modelId}
+                  maxOutputTokenOverride={outputOverrides.overrides[modelId] ?? null}
+                  onSaveMaxOutputTokenOverride={outputOverrides.save}
+                  savingOutputOverride={outputOverrides.savingModelId === modelId}
+                  contextWindowOverride={contextOverrides[modelId] ?? null}
+                  onSaveContextWindowOverride={saveContextWindowOverride}
+                  savingContextOverride={savingContextModelId === modelId}
+                />
+              );
+            })}
           </div>
-          {filteredModels.length === 0 && modelFilter && (
+          {displayRows.length === 0 && modelFilter && (
             <p className="py-2 text-sm text-text-muted">
               {providerText(t, "noModelsMatch", `No models match "${modelFilter}"`, {
                 filter: modelFilter,

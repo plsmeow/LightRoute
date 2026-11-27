@@ -83,10 +83,6 @@ export function isOpenAICompatibleEndpoint(provider: string, url: string): boole
 }
 
 /**
- * Strip OpenAI SDK (`X-Stainless-*`) metadata headers and normalize an SDK-derived
- * User-Agent for OpenAI-compatible passthrough requests. Some upstream gateways
- * 403 on these SDK-identifying headers. Only applied to OpenAI-compatible endpoints —
- * other providers (Claude/Claude Code compat) may legitimately send X-Stainless-*.
  *
  * Mutates `headers` in place and returns the list of stripped header keys (for logging).
  */
@@ -104,6 +100,8 @@ export function stripStainlessHeadersForOpenAICompat(
       strippedKeys.push(key);
     }
   }
+
+  if (provider?.startsWith?.("openai-compatible-")) return strippedKeys;
 
   // Normalize User-Agent: SDK-based clients send verbose product strings that some
   // upstreams block. Replace with a clean browser-like UA only when it looks SDK-derived.

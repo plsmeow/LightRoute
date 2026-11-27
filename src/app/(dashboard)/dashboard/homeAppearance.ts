@@ -16,3 +16,17 @@
 export function shouldShowProviderTopologyOnHome(setting: unknown): boolean {
   return setting !== false;
 }
+
+/**
+ * Whether the "models with recent usage but no configured price" notice should
+ * render on the Home page.
+ *
+ * Defaults ON — the notice is the only place an operator learns why a per-key
+ * USD limit treats unpriced models as over quota (UNPRICED_USAGE_BUDGET_POLICY
+ * `fail_closed`, #12341). Only an explicit `false` (set from Settings →
+ * Appearance) hides it; absent/`null` keep the default so installs that never
+ * persisted the setting still get warned.
+ */
+export function shouldShowUnpricedUsageBannerOnHome(setting: unknown): boolean {
+  return setting !== false;
+}

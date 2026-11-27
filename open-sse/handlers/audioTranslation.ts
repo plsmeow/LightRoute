@@ -40,11 +40,13 @@ export async function handleAudioTranslation({
   credentials,
   resolvedProvider = null,
   resolvedModel = null,
+  clientUserAgent = null,
 }: {
   formData: FormData;
   credentials?: TranslationCredentials | null;
   resolvedProvider?: AudioProvider | null;
   resolvedModel?: string | null;
+  clientUserAgent?: string | null;
 }): Promise<Response> {
   const model = formData.get("model");
   if (typeof model !== "string" || !model) {
@@ -97,7 +99,10 @@ export async function handleAudioTranslation({
   try {
     const res = await fetch(providerConfig.baseUrl, {
       method: "POST",
-      headers: { ...buildAuthHeaders(providerConfig, token), "Content-Type": multipartCT },
+      headers: {
+        ...buildAuthHeaders(providerConfig, token, clientUserAgent),
+        "Content-Type": multipartCT,
+      },
       body: multipartBody,
     });
 

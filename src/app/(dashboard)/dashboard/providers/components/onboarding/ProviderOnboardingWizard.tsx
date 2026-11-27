@@ -51,7 +51,6 @@ type ApiKeyFormState = {
   baseUrl: string;
   region: string;
   cx: string;
-  customUserAgent: string;
 };
 
 type CustomFormState = {
@@ -70,7 +69,6 @@ const EMPTY_API_KEY_FORM: ApiKeyFormState = {
   baseUrl: "",
   region: "",
   cx: "",
-  customUserAgent: "",
 };
 
 const DEFAULT_CUSTOM_FORM: CustomFormState = {
@@ -421,7 +419,6 @@ export default function ProviderOnboardingWizard() {
           baseUrl: apiKeyForm.baseUrl.trim() || undefined,
           region: apiKeyForm.region.trim() || undefined,
           cx: apiKeyForm.cx.trim() || undefined,
-          customUserAgent: apiKeyForm.customUserAgent.trim() || undefined,
         });
       }
       setStatus(text("onboardingSavingConnection", "Saving provider connection…"));
@@ -738,14 +735,6 @@ export default function ProviderOnboardingWizard() {
                   "onboardingProviderSpecificIdPlaceholder",
                   "Optional provider-specific id"
                 )}
-              />
-              <Input
-                label={text("onboardingCustomUserAgent", "Custom User-Agent")}
-                value={apiKeyForm.customUserAgent}
-                onChange={(event) =>
-                  setApiKeyForm({ ...apiKeyForm, customUserAgent: event.target.value })
-                }
-                placeholder={text("optional", "Optional")}
               />
             </div>
             <div className="flex flex-wrap gap-2">

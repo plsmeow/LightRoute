@@ -194,6 +194,7 @@ export function normalizeProviderSpecificData(
   if (Object.keys(record).length === 0) return undefined;
 
   const normalized: JsonRecord = { ...record };
+  delete normalized.customUserAgent;
 
   normalizeNestedSubObjects(provider, normalized);
 

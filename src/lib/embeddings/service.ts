@@ -301,6 +301,9 @@ export async function createEmbeddingResponse(
     const registryConfig = getEmbeddingProvider(provider);
     providerConfig = {
       id: provider,
+      ...(provider.startsWith("openai-compatible-")
+        ? { compatibleNode: { customHeaders: providerSpecificData?.customHeaders } }
+        : {}),
       baseUrl: baseUrl.endsWith("/embeddings") ? baseUrl : `${baseUrl}/embeddings`,
       authType: provider === "docker-model-runner" ? "none" : "apikey",
       authHeader: "bearer",
@@ -354,6 +357,7 @@ export async function createEmbeddingResponse(
         const isNoAuthLocal = nodeHostname !== "" && isNoAuthLocalEmbeddingHost(nodeHostname);
         providerConfig = {
           id: matchingNode.prefix,
+          compatibleNode: { customHeaders: matchingNode.customHeaders },
           baseUrl: `${baseUrl}/embeddings`,
           authType: isNoAuthLocal ? "none" : "apikey",
           authHeader: isNoAuthLocal ? "none" : "bearer",

@@ -75,6 +75,7 @@ export interface EmbeddingProvider {
   identityHeaders?: "github-copilot";
   /** Wrap a bare string `input` into a one-element array (Copilot answers 400 on a string). */
   requiresArrayInput?: boolean;
+  compatibleNode?: { customHeaders?: unknown };
 }
 
 export interface EmbeddingProviderNodeRow {
@@ -83,6 +84,7 @@ export interface EmbeddingProviderNodeRow {
   name: string;
   baseUrl: string;
   apiType?: string;
+  customHeaders?: unknown;
 }
 
 /**
@@ -99,6 +101,7 @@ export function buildDynamicEmbeddingProvider(node: EmbeddingProviderNodeRow): E
   const baseUrl = node.baseUrl.replace(/\/+$/, "");
   return {
     id: node.prefix,
+    compatibleNode: { customHeaders: node.customHeaders },
     baseUrl: `${baseUrl}/embeddings`,
     authType: "none",
     authHeader: "none",

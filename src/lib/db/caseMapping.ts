@@ -45,7 +45,9 @@ export function rowToCamel(row: unknown): JsonRecord | null {
       result[camelKey] = v === 1 || v === true;
     } else if (camelKey === "providerSpecificData" && typeof v === "string") {
       try {
-        result[camelKey] = JSON.parse(v);
+        const data = JSON.parse(v);
+        if (data && typeof data === "object") delete data.customUserAgent;
+        result[camelKey] = data;
       } catch {
         result[camelKey] = v;
       }

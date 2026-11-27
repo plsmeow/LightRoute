@@ -1,5 +1,6 @@
 import { hasUnsafeModelIdSyntax } from "../utils/modelIdSafety.ts";
 import { randomUUID } from "crypto";
+import { applyCompatibleUserAgent } from "../services/compatibleProviderHeaders.ts";
 /**
  * Shared Registry Utilities
  *
@@ -21,6 +22,7 @@ export interface BaseProvider<M extends BaseModel = BaseModel> {
   authHeader: string; // "bearer" | "key" | "token" | "xi-api-key" | "x-api-key" | "none"
   format?: string;
   models: M[];
+  compatibleNode?: { customHeaders?: unknown };
 }
 
 /**
@@ -114,8 +116,18 @@ export function getAllModelsFromRegistry<P extends BaseProvider>(
  */
 export function buildAuthHeaders(
   provider: BaseProvider,
-  token: string | null
+  token: string | null,
+  clientUserAgent?: string | null
 ): Record<string, string> {
+  if (provider.compatibleNode) {
+    const headers =
+      provider.authHeader === "bearer" && token ? { Authorization: `Bearer ${token}` } : {};
+    return applyCompatibleUserAgent(
+      headers,
+      provider.compatibleNode.customHeaders,
+      clientUserAgent
+    );
+  }
   if (provider.authType === "none" || provider.authHeader === "none" || !token) {
     return {};
   }

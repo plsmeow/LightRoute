@@ -4,7 +4,6 @@
  */
 type ValidateFormFields = {
   validationModelId?: string;
-  customUserAgent: string;
   baseUrl: string;
   region: string;
   awsAccessKeyId: string;
@@ -55,7 +54,6 @@ export function buildProviderValidateRequestBody(options: {
     provider,
     apiKey,
     validationModelId: formData.validationModelId || undefined,
-    customUserAgent: trimmedOrUndefined(formData.customUserAgent),
     baseUrl: trimmedOrUndefined(formData.baseUrl),
     region: validateRegion(formData, isAwsPolly, showsRegion, defaultRegion),
     accessKeyId: family.accessKeyId,

@@ -23,45 +23,7 @@ import { assertNoStale } from "./lib/allowlist.mjs";
 // justificativa. Remover daqui ao registrar o provider em providers.ts.
 export const KNOWN_REGISTRY_ONLY: Record<string, string> = {};
 
-/**
- * Providers canônicos com serviceKinds llm que LEGITIMAMENTE não têm entrada no
- * REGISTRY. Cada um roteia via baseUrl de conexão (providerSpecificData.baseUrl) ou
- * executor especializado, então a ausência de registro não é órfão.
- */
-export const KNOWN_CATALOG_ONLY: Record<string, string> = {
-  "amazon-q": "OAuth/IDE provider roteado via KiroExecutor sem entrada de registry.",
-  zed: "OAuth/IDE provider (Zed) roteado via executor especializado; sem entrada de registry.",
-  piapi: "Gateway OpenAI-compatible roteado via baseUrl de conexão.",
-  getgoapi: "Gateway OpenAI-compatible roteado via baseUrl de conexão.",
-  laozhang: "Gateway OpenAI-compatible roteado via baseUrl de conexão.",
-  thebai: "Gateway OpenAI-compatible roteado via baseUrl de conexão.",
-  fenayai: "Gateway OpenAI-compatible roteado via baseUrl de conexão.",
-  empower: "Gateway OpenAI-compatible roteado via baseUrl de conexão.",
-  "arcee-ai": "API-key provider roteado via baseUrl de conexão.",
-  "azure-openai": "Azure OpenAI roteado via AzureOpenAIExecutor + baseUrl de conexão.",
-  "azure-ai": "Azure AI Foundry roteado via AzureAiExecutor + baseUrl de conexão.",
-  watsonx: "Enterprise provider roteado via baseUrl de conexão.",
-  oci: "OCI Generative AI roteado via baseUrl de conexão.",
-  sap: "SAP AI Core roteado via baseUrl de conexão.",
-  datarobot: "Enterprise provider roteado via baseUrl de conexão.",
-  clarifai: "Clarifai PAT roteado via baseUrl de conexão.",
-  "360ai": "Regional provider roteado via baseUrl de conexão.",
-  gitlab: "GitLab (non-Duo) roteado via executor especializado + baseUrl de conexão.",
-  "poe-web": "Web/cookie provider roteado via executor especializado (PoeWebExecutor).",
-  "venice-web": "Web/cookie provider roteado via executor especializado (VeniceWeb).",
-  "v0-vercel-web": "Web/cookie provider roteado via executor especializado (V0VercelWeb).",
-  "gemini-business": "Enterprise Gemini roteado via executor especializado + baseUrl de conexão.",
-  "ollama-local": "Local provider (Ollama) roteado via baseUrl de conexão; sem registry.",
-  "lm-studio": "Local provider (LM Studio) roteado via baseUrl de conexão.",
-  vllm: "Local provider (vLLM) roteado via baseUrl de conexão.",
-  lemonade: "Local provider roteado via baseUrl de conexão.",
-  llamafile: "Local provider roteado via baseUrl de conexão.",
-  "llama-cpp": "Local provider roteado via baseUrl de conexão.",
-  triton: "Local provider (Triton) roteado via baseUrl de conexão.",
-  "docker-model-runner": "Local provider roteado via baseUrl de conexão.",
-  xinference: "Local provider (XInference) roteado via baseUrl de conexão.",
-  oobabooga: "Local provider (Oobabooga) roteado via baseUrl de conexão.",
-};
+export const KNOWN_CATALOG_ONLY: Record<string, string> = {};
 
 /** Ids do REGISTRY que não são providers canônicos e não estão na allowlist. */
 export function findOrphanRegistryIds(
